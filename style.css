@@ -528,3 +528,8 @@ p {
     font-size: 17px;
   }
 }
+
+.host-badges,
+.host-badge {
+  display: none !important;
+}
