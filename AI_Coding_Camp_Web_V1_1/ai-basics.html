@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI基础 - AI Coding 科创夏令营</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="index.html"><span class="brand-mark">AI</span><span>AI Coding 科创夏令营</span></a>
+      <span class="training-mark">AI进化十步法实战训练营</span>
+      <div class="nav-links">
+        <a href="index.html">首页</a><a href="course.html">课程</a><a href="schedule.html">日程</a><a class="active" href="ai-basics.html">AI基础</a><a href="coding.html">AI Coding</a><a href="projects.html">作品</a><a href="teaching.html">教学支持</a><a href="faq.html">FAQ</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <p class="eyebrow">AI Basics</p>
+      <h1>AI 基础：从文字接龙开始</h1>
+      <p class="lead">孩子不需要先学复杂数学，也可以先理解大语言模型的基本工作方式：看前文、猜下一个、再不断接下去。</p>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>课堂案例：你喜欢什么外语？</h2><p>这是替代“你喜欢什么水果”的同类案例，既生活化，又能自然引出 Token 和预测。</p></div>
+      <div class="grid">
+        <article class="card"><span class="tag">输入</span><h3>你喜欢什么外语？</h3><p>模型先看到这句话，但它不会一次性吐出完整答案，而是一步一步预测。</p></article>
+        <article class="card"><span class="tag">预测</span><h3>我</h3><p>根据上下文，模型判断下一个很可能是“我”。</p></article>
+        <article class="card"><span class="tag">继续</span><h3>喜欢</h3><p>有了“你喜欢什么外语？我”，下一个高概率词变成“喜欢”。</p></article>
+        <article class="card"><span class="tag">结果</span><h3>英语</h3><p>继续接下去，就可能形成“我喜欢英语”。</p></article>
+        <article class="card"><span class="tag">变化</span><h3>法语 / 日语 / 西班牙语</h3><p>不同上下文、训练数据和随机性，会让模型给出不同答案。</p></article>
+        <article class="card"><span class="tag">重点</span><h3>不是背答案</h3><p>它更像是在大量语言经验中寻找最合适的下一个表达。</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="grid two">
+        <article class="card"><h3>Token 是什么？</h3><p>Token 是模型处理文字的基本单位。它不一定等于一个字，也不一定等于一个词，而是模型自己学到的切分方式。</p></article>
+        <article class="card"><h3>Tokenizer 是什么？</h3><p>Tokenizer 像中间人：把人类文字编码成数字，再把模型输出的数字解码回文字。</p></article>
+      </div>
+      <div class="code-box">人类文字：你喜欢什么外语？<br>编码之后：[102, 450, 99, 801]<br>模型预测：[203]<br>解码结果：英语</div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="footer-inner"><span>AI Coding 科创夏令营</span><span>AI Basics</span><span class="copyright">本训练营课程体系由《AI进化十步法》作者乔瑞先生原创设计，并由乔瑞先生亲自担任训练营教练；《AI进化十步法》合著者为乔瑞先生、刘铭文先生。课程大纲、教学路径、案例设计、项目任务与训练方法，均为新书配套的青少年 AI 实践系列原创内容。未经书面授权，任何个人或机构不得复制、改编、摘录、转售、培训复用或用于其他商业用途。</span></div></footer>
+</body>
+</html>
