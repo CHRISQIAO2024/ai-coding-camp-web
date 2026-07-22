@@ -484,6 +484,36 @@ h3 {
   border: 1px solid var(--line);
 }
 
+.faq-section {
+  max-width: none;
+  background: #f7fbf8;
+}
+
+.faq-section > * {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.faq-grid {
+  max-width: 1180px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.faq-grid article {
+  padding: 22px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(25, 48, 41, 0.08);
+}
+
+.faq-grid p {
+  color: var(--muted);
+}
+
 .survey-section {
   max-width: none;
   display: grid;
@@ -575,6 +605,7 @@ h3 {
 
   .level-grid,
   .author-grid,
+  .faq-grid,
   .path-line {
     grid-template-columns: 1fr;
   }
