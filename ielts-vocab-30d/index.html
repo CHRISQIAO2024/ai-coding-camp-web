@@ -11,10 +11,11 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button class="brand" type="button" data-action="go-home" aria-label="返回今日首页">
+      <a class="brand" href="../" aria-label="返回青少年AI Coding训练营首页">
         <span class="brand-mark">15</span>
         <span><strong>拾伍词</strong><small>30天 · 雅思6.5核心词汇</small></span>
-      </button>
+      </a>
+      <span class="training-mark">AI进化十步法实战训练营</span>
       <nav class="main-nav" aria-label="主要导航">
         <button class="nav-btn active" type="button" data-view="today">今日</button>
         <button class="nav-btn" type="button" data-view="words">词库</button>
@@ -24,11 +25,14 @@
 
     <main id="app" tabindex="-1" aria-live="polite"></main>
 
-    <footer class="site-footer">
-      <span>每天15词，先复习，再学习。</span>
-      <span>词汇训练帮助备考，但不等同于雅思成绩。</span>
-    </footer>
   </div>
+
+  <footer class="learning-footer">
+    <div class="learning-footer-inner">
+      <span>AI进化十步法青少年 AI Coding 训练营</span>
+      <span class="copyright">本训练营课程体系由《AI进化十步法》作者乔瑞先生原创设计，并由乔瑞先生亲自担任训练营教练；《AI进化十步法》合著者为乔瑞先生、刘铭文先生。课程大纲、教学路径、案例设计、项目任务与训练方法，均为新书配套的青少年 AI 实践系列原创内容。未经书面授权，任何个人或机构不得复制、改编、摘录、转售、培训复用或用于其他商业用途。</span>
+    </div>
+  </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="data.js"></script>
