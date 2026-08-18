@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f2e8">
+  <meta name="description" content="面向高中生的30天雅思6.5核心词汇训练：每天15词，学习、复习、练习和评测一体化。">
+  <title>拾伍词 · 雅思6.5词汇训练</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" type="button" data-action="go-home" aria-label="返回今日首页">
+        <span class="brand-mark">15</span>
+        <span><strong>拾伍词</strong><small>30天 · 雅思6.5核心词汇</small></span>
+      </button>
+      <nav class="main-nav" aria-label="主要导航">
+        <button class="nav-btn active" type="button" data-view="today">今日</button>
+        <button class="nav-btn" type="button" data-view="words">词库</button>
+        <button class="nav-btn" type="button" data-view="report">报告</button>
+      </nav>
+    </header>
+
+    <main id="app" tabindex="-1" aria-live="polite"></main>
+
+    <footer class="site-footer">
+      <span>每天15词，先复习，再学习。</span>
+      <span>词汇训练帮助备考，但不等同于雅思成绩。</span>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
