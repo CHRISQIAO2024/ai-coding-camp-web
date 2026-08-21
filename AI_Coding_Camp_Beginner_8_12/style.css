@@ -663,6 +663,26 @@ h3 {
   font-size: 18px;
 }
 
+.student-case-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.text-link {
+  color: var(--teal);
+  font-family: "Microsoft YaHei", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
 .survey-card {
   display: grid;
   justify-items: center;
