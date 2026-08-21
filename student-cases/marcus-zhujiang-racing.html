@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MARCUS杯珠江新城赛车锦标赛</title>
+    <!-- Three.js & PeerJS from unpkg -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body, html {
+            width: 100%; height: 100%; overflow: hidden; background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .touchable { pointer-events: auto; }
+
+        /* Lobby Modal */
+        #lobby-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 15, 30, 0.94); backdrop-filter: blur(16px);
+            display: flex; justify-content: center; align-items: center; z-index: 100;
+        }
+        .lobby-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 2px solid rgba(250, 204, 21, 0.5); border-radius: 28px;
+            padding: 30px 40px; width: 92%; max-width: 520px; color: #fff;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9), 0 0 20px rgba(250, 204, 21, 0.25);
+            display: flex; flex-direction: column; gap: 16px; text-align: center;
+        }
+        .lobby-title {
+            font-size: 26px; font-weight: 900; color: #facc15;
+            text-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+        }
+        .lobby-sub { font-size: 13px; color: #94a3b8; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+        .form-label { font-size: 13px; font-weight: bold; color: #cbd5e1; }
+        .input-text {
+            background: rgba(15, 23, 42, 0.8); border: 1.5px solid rgba(255,255,255,0.25);
+            border-radius: 14px; padding: 10px 16px; color: #fff; font-size: 16px;
+            font-weight: bold; outline: none; transition: border-color 0.2s;
+        }
+        .input-text:focus { border-color: #facc15; }
+        .color-picker-group { display: flex; gap: 8px; justify-content: center; }
+        .color-dot {
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.3); transition: transform 0.2s;
+        }
+        .color-dot.active { transform: scale(1.25); border-color: #fff; box-shadow: 0 0 10px #fff; }
+        .btn-lobby-action {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;
+            padding: 12px 20px; border-radius: 25px; border: 2px solid rgba(255,255,255,0.3);
+            font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-lobby-action:active { transform: scale(0.95); }
+        .btn-host { background: linear-gradient(135deg, #10b981, #047857); }
+        .btn-join { background: linear-gradient(135deg, #f59e0b, #b45309); }
+        .btn-solo { background: linear-gradient(135deg, #64748b, #334155); }
+
+        /* Room Lobby Sub-view */
+        #room-view { display: none; flex-direction: column; gap: 14px; }
+        .room-code-badge {
+            background: rgba(250, 204, 21, 0.15); border: 2px dashed #facc15;
+            padding: 12px; border-radius: 16px; font-size: 22px; font-weight: 900;
+            color: #fef08a; letter-spacing: 4px; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .player-list-box {
+            background: rgba(15, 23, 42, 0.7); border-radius: 14px; padding: 12px;
+            max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; text-align: left;
+        }
+        .player-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; font-weight: bold; padding: 4px 8px; border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* Top HUD */
+        #top-hud {
+            position: absolute; top: 15px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        .hud-panel {
+            background: rgba(15, 23, 42, 0.85); padding: 8px 18px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(8px);
+            font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px;
+        }
+        .hud-highlight { color: #facc15; font-size: 18px; }
+
+        /* Speedometer */
+        #speed-panel {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(10, 15, 30, 0.9); border: 2px solid #facc15;
+            border-radius: 24px; padding: 6px 22px; text-align: center; color: #fff;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.4);
+        }
+        #speed-val { font-size: 32px; font-weight: 900; color: #facc15; font-family: 'Courier New', monospace; }
+        #speed-unit { font-size: 12px; color: #94a3b8; }
+
+        /* Big Banner */
+        #big-banner {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 72px; font-weight: 900; color: #facc15;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.8), 0 4px 8px #000;
+            display: none; text-align: center; pointer-events: none; animation: pulse 0.5s ease-out;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* Pre-race Walk UI */
+        #pre-race-ui {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            width: 94%; max-width: 620px;
+        }
+        .weapon-select-title { color: #fef08a; font-size: 15px; font-weight: bold; text-shadow: 0 1px 3px #000; }
+        .pre-btn-group { display: flex; gap: 8px; justify-content: center; width: 100%; flex-wrap: wrap; }
+        .game-btn {
+            background: linear-gradient(135deg, #334155, #1e293b); color: #cbd5e1;
+            border: 2px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 25px;
+            font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+            transition: all 0.2s;
+        }
+        .game-btn:active { transform: scale(0.94); }
+        .weapon-selected {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+            color: #fff !important; border-color: #fef08a !important;
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.7) !important;
+        }
+        .btn-enter-car {
+            background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+            font-size: 20px; padding: 12px 36px; border: 3px solid #fff;
+            border-radius: 30px; box-shadow: 0 0 25px rgba(16, 185, 129, 0.8); animation: bounce 1.2s infinite;
+        }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        #walk-hint {
+            background: rgba(0,0,0,0.75); color: #f1f5f9; padding: 6px 14px;
+            border-radius: 12px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2); text-align: center;
+        }
+
+        /* Walk Joystick */
+        #walk-joystick {
+            position: absolute; bottom: 35px; left: 35px; width: 120px; height: 120px;
+            background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        #walk-stick {
+            width: 50px; height: 50px; background: rgba(250, 204, 21, 0.85);
+            border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5); position: absolute;
+        }
+
+        /* Racing Controls */
+        #racing-controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; display: none; }
+        #steer-container {
+            position: absolute; bottom: 25px; left: 25px; width: 170px; height: 170px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .steer-btn {
+            width: 78px; height: 130px; background: rgba(30, 41, 59, 0.7);
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 20px;
+            color: white; font-size: 34px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .steer-btn:active, .steer-btn.active {
+            background: rgba(59, 130, 246, 0.85); border-color: #60a5fa; transform: scale(0.95);
+        }
+        #pedals-container { position: absolute; bottom: 25px; right: 25px; display: flex; gap: 15px; align-items: flex-end; }
+        .pedal-btn {
+            border-radius: 50%; border: 3px solid rgba(255,255,255,0.4); color: #fff; font-weight: 900;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+        }
+        .pedal-btn:active, .pedal-btn.active { transform: scale(0.92); }
+        #btn-gas { width: 95px; height: 95px; background: linear-gradient(135deg, #10b981, #059669); font-size: 20px; }
+        #btn-brake { width: 75px; height: 75px; background: linear-gradient(135deg, #ef4444, #dc2626); font-size: 16px; }
+
+        /* Weapon Controls */
+        #weapon-controls {
+            position: absolute; right: 135px; bottom: 25px; display: none;
+            flex-direction: column; align-items: center; gap: 6px;
+        }
+        #btn-fire {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: radial-gradient(circle, #f97316, #dc2626);
+            border: 3px solid #fef08a; color: #fff; font-size: 18px; font-weight: 900;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 0 22px rgba(239, 68, 68, 0.8); cursor: pointer;
+        }
+        #btn-fire.disabled {
+            background: #475569 !important; border-color: #94a3b8 !important;
+            box-shadow: none !important; opacity: 0.7;
+        }
+        #btn-fire:active:not(.disabled), #btn-fire.firing {
+            transform: scale(0.92); background: radial-gradient(circle, #ef4444, #991b1b);
+        }
+        #weapon-status-label { font-size: 12px; font-weight: bold; color: #fef08a; text-shadow: 0 1px 3px #000; }
+        #ammo-dots { display: flex; gap: 4px; margin-top: 2px; }
+        .ammo-dot { width: 8px; height: 8px; border-radius: 50%; background: #facc15; box-shadow: 0 0 4px #facc15; }
+        .ammo-dot.spent { background: #64748b; box-shadow: none; }
+
+        /* Touch Aim Zone */
+        #aim-zone {
+            position: absolute; top: 70px; left: 15%; width: 70%; height: 55%;
+            border: 1px dashed rgba(250, 204, 21, 0.3); border-radius: 20px;
+            display: none; justify-content: center; align-items: center;
+            color: rgba(255,255,255,0.4); font-size: 13px;
+        }
+        #crosshair {
+            position: absolute; width: 44px; height: 44px; pointer-events: none;
+            transform: translate(-50%, -50%); display: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(239, 68, 68, 0.9); box-shadow: 0 0 6px #ef4444;
+        }
+        #crosshair::before { top: 21px; left: 0; width: 44px; height: 2px; }
+        #crosshair::after { top: 0; left: 21px; width: 2px; height: 44px; }
+        .crosshair-ring {
+            position: absolute; width: 26px; height: 26px; top: 9px; left: 9px;
+            border: 2px solid #facc15; border-radius: 50%;
+        }
+
+        #top-right-tools { position: absolute; top: 15px; right: 20px; display: flex; gap: 10px; }
+        .tool-btn {
+            background: rgba(15, 23, 42, 0.8); border: 1.5px solid rgba(255,255,255,0.3);
+            color: #fff; padding: 8px 14px; border-radius: 16px; font-size: 14px;
+            font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: pointer;
+        }
+
+        /* Result Modal */
+        #result-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.94); border: 3px solid #facc15;
+            border-radius: 28px; padding: 35px 45px; text-align: center; color: #fff;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9); display: none; flex-direction: column;
+            align-items: center; gap: 20px; min-width: 320px; backdrop-filter: blur(12px); z-index: 100;
+        }
+        #result-title { font-size: 34px; font-weight: 900; }
+        #result-desc { font-size: 18px; color: #cbd5e1; line-height: 1.6; }
+        .btn-restart {
+            background: linear-gradient(135deg, #10b981, #059669); color: white;
+            font-size: 20px; padding: 14px 40px; border-radius: 30px; border: 2px solid #fff;
+            cursor: pointer; font-weight: bold;
+        }
+
+        /* Floating pops */
+        .cheer-pop {
+            position: absolute; color: #facc15; font-weight: 900; font-size: 22px;
+            text-shadow: 0 0 10px #ef4444, 0 2px 4px #000; pointer-events: none;
+            animation: floatUp 1.2s forwards ease-out; z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.7); opacity: 0; }
+            30% { transform: translateY(-25px) scale(1.25); opacity: 1; }
+            100% { transform: translateY(-70px) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <!-- Multiplayer & Solo Lobby Modal -->
+        <div id="lobby-modal" class="touchable">
+            <div class="lobby-card">
+                <div class="lobby-title">🏁 MARCUS杯珠江新城赛车锦标赛 · 联机大厅</div>
+                <div class="lobby-sub">支持 iPad / 手机 / 电脑 实时跨端对战</div>
+
+                <!-- Step 1: Profile Customization -->
+                <div id="profile-step">
+                    <div class="form-group">
+                        <label class="form-label">车手专属名字 (印在车顶)：</label>
+                        <input id="input-driver-name" class="input-text" type="text" value="MARCUS" maxlength="8">
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label class="form-label">兰博基尼车身颜色：</label>
+                        <div class="color-picker-group">
+                            <div class="color-dot active" style="background:#facc15;" data-color="0xfacc15"></div>
+                            <div class="color-dot" style="background:#ef4444;" data-color="0xef4444"></div>
+                            <div class="color-dot" style="background:#3b82f6;" data-color="0x3b82f6"></div>
+                            <div class="color-dot" style="background:#10b981;" data-color="0x10b981"></div>
+                            <div class="color-dot" style="background:#94a3b8;" data-color="0x94a3b8"></div>
+                            <div class="color-dot" style="background:#8b5cf6;" data-color="0x8b5cf6"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+                        <button id="btn-create-room" class="btn-lobby-action btn-host">🏠 创建联机房间 (我是房主)</button>
+                        <div style="display:flex; gap:8px;">
+                            <input id="input-room-code" class="input-text" style="flex:1; text-transform:uppercase;" placeholder="输入4位房间码" maxlength="6">
+                            <button id="btn-join-room" class="btn-lobby-action btn-join" style="padding:10px 18px;">加入房间</button>
+                        </div>
+                        <button id="btn-play-solo" class="btn-lobby-action btn-solo">🤖 单人单机模式 (与AI对战)</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Room Lobby (Multiplayer Room) -->
+                <div id="room-view">
+                    <div class="room-code-badge">
+                        <span>房间码:</span>
+                        <span id="display-room-code">----</span>
+                    </div>
+                    <div style="font-size:12px; color:#cbd5e1;">告诉朋友输入此房间码，即可加入同一场比赛！</div>
+                    <div class="player-list-box" id="player-list-container">
+                        <div class="player-row"><span>👑 房主: 加载中...</span><span style="color:#10b981;">已准备</span></div>
+                    </div>
+                    <button id="btn-start-multiplayer" class="btn-lobby-action btn-host" style="display:none;">🚀 全员就绪，开始比赛！</button>
+                    <div id="waiting-host-hint" style="font-size:13px; color:#facc15; display:none;">⏳ 等待房主开始比赛...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top HUD -->
+        <div id="top-hud">
+            <div class="hud-panel">
+                <span>🏆 排名:</span>
+                <span id="rank-display" class="hud-highlight">1 / 5</span>
+            </div>
+            <div class="hud-panel">
+                <span id="net-status-badge">🌐 联机: 单机</span>
+            </div>
+            <div class="hud-panel">
+                <span>📍 圈数:</span>
+                <span id="lap-display" class="hud-highlight">0 / 1</span>
+            </div>
+            <div id="top-right-tools">
+                <button id="btn-camera" class="tool-btn touchable">🎥 视角切换</button>
+            </div>
+        </div>
+
+        <!-- Big Banner -->
+        <div id="big-banner">3</div>
+
+        <!-- Speedometer -->
+        <div id="speed-panel" style="display:none;">
+            <div id="speed-val">0</div>
+            <div id="speed-unit">KM / H</div>
+        </div>
+
+        <!-- Crosshair -->
+        <div id="crosshair">
+            <div class="crosshair-ring"></div>
+        </div>
+
+        <!-- Pre-race Walk UI -->
+        <div id="pre-race-ui" style="display:none;">
+            <div id="walk-hint">👟 自由探索模式：走近兰博基尼或对手赛车参观！</div>
+            <div class="weapon-select-title">⚔️ 车载武器库选择：</div>
+            <div class="pre-btn-group">
+                <button id="btn-wpn-gatling" class="game-btn weapon-selected touchable">
+                    <span>🔫</span> <span>加特林机枪</span>
+                </button>
+                <button id="btn-wpn-rifle" class="game-btn touchable">
+                    <span>⚡</span> <span>突击步枪(3连发)</span>
+                </button>
+                <button id="btn-wpn-rocket" class="game-btn touchable">
+                    <span>🚀</span> <span>陷阱火箭筒</span>
+                </button>
+                <button id="btn-wpn-none" class="game-btn touchable">
+                    <span>❌</span> <span>取消武器</span>
+                </button>
+            </div>
+            <button id="btn-open-door" class="game-btn btn-enter-car touchable" style="display:none;">
+                🚪 开门进入兰博基尼
+            </button>
+        </div>
+
+        <!-- Walk Joystick -->
+        <div id="walk-joystick" class="touchable" style="display:none;">
+            <div id="walk-stick"></div>
+        </div>
+
+        <!-- Racing Controls -->
+        <div id="racing-controls">
+            <div id="steer-container">
+                <div id="btn-left" class="steer-btn touchable">◀</div>
+                <div id="btn-right" class="steer-btn touchable">▶</div>
+            </div>
+            <div id="pedals-container">
+                <div id="btn-brake" class="pedal-btn touchable">
+                    <span>刹车</span>
+                    <span style="font-size:10px;">REVERSE</span>
+                </div>
+                <div id="btn-gas" class="pedal-btn touchable">
+                    <span>油门</span>
+                    <span style="font-size:10px;">GAS</span>
+                </div>
+            </div>
+            <div id="weapon-controls" class="touchable">
+                <div id="btn-fire" class="touchable">
+                    <span id="fire-btn-title">🔥 开火</span>
+                    <span id="fire-btn-sub" style="font-size:10px; color:#fef08a;">加特林(速射)</span>
+                </div>
+                <div id="weapon-status-label">无限子弹</div>
+                <div id="ammo-dots" style="display:none;">
+                    <div class="ammo-dot" id="dot-1"></div>
+                    <div class="ammo-dot" id="dot-2"></div>
+                    <div class="ammo-dot" id="dot-3"></div>
+                </div>
+            </div>
+            <div id="aim-zone" class="touchable">
+                <span>👆 在此区域滑动可手动调整瞄准准星与炮塔</span>
+            </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="result-modal">
+            <div id="result-title">🎉 比赛结束</div>
+            <div id="result-desc">你获得了 第 1 名！</div>
+            <button id="btn-restart" class="btn-restart touchable">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <script>
+    class SoundFX {
+        constructor() {
+            this.ctx = null;
+            this.engineOsc = null;
+            this.engineGain = null;
+            this.isEngineRunning = false;
+        }
+        init() {
+            if (!this.ctx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            }
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+        }
+        startEngine() {
+            if (this.isEngineRunning || !this.ctx) return;
+            try {
+                this.engineOsc = this.ctx.createOscillator();
+                this.engineGain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                this.engineOsc.type = 'sawtooth';
+                this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(300, this.ctx.currentTime);
+                this.engineGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                this.engineOsc.connect(filter);
+                filter.connect(this.engineGain);
+                this.engineGain.connect(this.ctx.destination);
+                this.engineOsc.start();
+                this.isEngineRunning = true;
+            } catch(e){}
+        }
+        setEnginePitch(speedRatio) {
+            if (!this.isEngineRunning || !this.engineOsc) return;
+            this.engineOsc.frequency.setTargetAtTime(45 + speedRatio * 180, this.ctx.currentTime, 0.1);
+        }
+        stopEngine() {
+            if (!this.isEngineRunning) return;
+            try {
+                this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+                setTimeout(() => {
+                    if (this.engineOsc) {
+                        this.engineOsc.stop();
+                        this.engineOsc.disconnect();
+                        this.engineOsc = null;
+                    }
+                    this.isEngineRunning = false;
+                }, 150);
+            } catch(e){}
+        }
+        playCountdown(isGo) {
+            this.init();
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = isGo ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(isGo ? 880 : 440, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (isGo ? 0.6 : 0.25));
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + (isGo ? 0.6 : 0.25));
+        }
+        playGatling() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(140 + Math.random() * 60, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+        }
+        playRifleShot() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(260 + Math.random()*50, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.09);
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.09);
+        }
+        playRocketLaunch() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.35);
+            gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.35);
+        }
+        playExplosion(isBig = false) {
+            if (!this.ctx) return;
+            const dur = isBig ? 1.2 : 0.7;
+            const bufferSize = Math.floor(this.ctx.sampleRate * dur);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * (isBig ? 0.4 : 0.2)));
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(isBig ? 240 : 180, this.ctx.currentTime);
+            filter.frequency.linearRampToValueAtTime(30, this.ctx.currentTime + dur);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(isBig ? 0.6 : 0.35, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+            noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+            noise.start();
+        }
+        playCrashLaunch() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(380, this.ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.4);
+        }
+        playReloadReady() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, this.ctx.currentTime);
+            osc.frequency.setValueAtTime(880.00, this.ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+        }
+        playCheer() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(659.25, this.ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.35);
+        }
+        playVictory() {
+            if (!this.ctx) return;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.15);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.15 + 0.4);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(this.ctx.currentTime + i * 0.15);
+                osc.stop(this.ctx.currentTime + i * 0.15 + 0.4);
+            });
+        }
+    }
+    const audio = new SoundFX();
+
+    class NetworkManager {
+        constructor() {
+            this.peer = null;
+            this.isHost = false;
+            this.roomCode = null;
+            this.connections = [];
+            this.hostConn = null;
+            this.isMultiplayer = false;
+            this.localPlayerId = 'p_' + Math.floor(Math.random()*100000);
+            this.remotePlayers = new Map();
+            this.lastBroadcastTime = 0;
+        }
+
+        initHost(roomCode, onOpen) {
+            this.isHost = true;
+            this.isMultiplayer = true;
+            this.roomCode = roomCode;
+            const peerId = 'gzrace_' + roomCode;
+            this.peer = new Peer(peerId);
+
+            this.peer.on('open', id => {
+                if (onOpen) onOpen(roomCode);
+            });
+
+            this.peer.on('connection', conn => {
+                this.connections.push(conn);
+                this.setupConn(conn);
+            });
+
+            this.peer.on('error', err => {
+                alert('创建房间失败: 房间码可能已被占用，请重试！');
+            });
+        }
+
+        initClient(roomCode, onConnected) {
+            this.isHost = false;
+            this.isMultiplayer = true;
+            this.roomCode = roomCode;
+            this.peer = new Peer();
+
+            this.peer.on('open', () => {
+                const targetHostId = 'gzrace_' + roomCode;
+                const conn = this.peer.connect(targetHostId);
+                this.hostConn = conn;
+                this.setupConn(conn, onConnected);
+            });
+
+            this.peer.on('error', err => {
+                alert('加入房间失败: 房间不存在或网络异常！');
+            });
+        }
+
+        setupConn(conn, onConnected) {
+            conn.on('open', () => {
+                conn.send({
+                    type: 'HANDSHAKE',
+                    id: this.localPlayerId,
+                    name: playerProfile.name,
+                    color: playerProfile.color,
+                    weapon: selectedWeapon
+                });
+                if (onConnected) onConnected();
+            });
+
+            conn.on('data', data => {
+                this.handleNetworkMessage(data, conn);
+            });
+
+            conn.on('close', () => {
+                this.remotePlayers.delete(conn.peer);
+                updateRoomLobbyUI();
+            });
+        }
+
+        broadcast(data) {
+            if (!this.isMultiplayer) return;
+            if (this.isHost) {
+                this.connections.forEach(c => {
+                    if (c.open) c.send(data);
+                });
+            } else if (this.hostConn && this.hostConn.open) {
+                this.hostConn.send(data);
+            }
+        }
+
+        handleNetworkMessage(msg, senderConn) {
+            if (msg.type === 'HANDSHAKE') {
+                this.remotePlayers.set(senderConn.peer, {
+                    id: msg.id,
+                    name: msg.name,
+                    color: msg.color,
+                    weapon: msg.weapon,
+                    mesh: null
+                });
+                updateRoomLobbyUI();
+
+                if (this.isHost) {
+                    const playerList = [];
+                    playerList.push({ id: this.localPlayerId, name: playerProfile.name, color: playerProfile.color, weapon: selectedWeapon });
+                    this.remotePlayers.forEach((p, pid) => {
+                        playerList.push({ id: p.id, name: p.name, color: p.color, weapon: p.weapon });
+                    });
+                    this.broadcast({ type: 'ROOM_SYNC', players: playerList });
+                }
+            } else if (msg.type === 'ROOM_SYNC') {
+                renderPlayerList(msg.players);
+            } else if (msg.type === 'START_MATCH') {
+                startMultiplayerMatch();
+            } else if (msg.type === 'SYNC_TRANSFORM') {
+                handleRemoteTransform(msg);
+            } else if (msg.type === 'FIRE_EVENT') {
+                handleRemoteFire(msg);
+            } else if (msg.type === 'SPAWN_CRATER') {
+                spawnCrater(msg.pos);
+            } else if (msg.type === 'ELIMINATE_EVENT') {
+                handleRemoteEliminate(msg);
+            }
+        }
+    }
+    const net = new NetworkManager();
+
+    const playerProfile = {
+        name: 'MARCUS',
+        color: 0xfacc15
+    };
+
+    const GAME_STATES = { LOBBY: -1, WALK: 0, COUNTDOWN: 1, RACING: 2, GAMEOVER: 3 };
+    let gameState = GAME_STATES.LOBBY;
+
+    const WEAPON_TYPES = { NONE: 'NONE', GATLING: 'GATLING', RIFLE: 'RIFLE', ROCKET: 'ROCKET' };
+    let selectedWeapon = WEAPON_TYPES.GATLING;
+
+    let cameraMode = 'THIRD';
+    let lastFireTime = 0;
+    const GATLING_INTERVAL = 0.055;
+
+    let rifleAmmo = 3;
+    let rifleReloadTimer = 0;
+    const RIFLE_RELOAD_TIME = 2.0;
+    let rifleBurstCount = 0;
+    let rifleBurstTimer = 0;
+
+    const ROCKET_COOLDOWN = 3.0;
+    let rocketCooldownTimer = 0;
+
+    const input = {
+        left: false, right: false, gas: false, brake: false, fire: false,
+        walkX: 0, walkZ: 0, aimX: 0, aimY: 0
+    };
+
+    const TRACK_POINTS = [
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, 160),
+        new THREE.Vector3(30, 0, 260),
+        new THREE.Vector3(90, 0, 320),
+        new THREE.Vector3(180, 0, 310),
+        new THREE.Vector3(240, 0, 230),
+        new THREE.Vector3(250, 0, 80),
+        new THREE.Vector3(250, 0, -100),
+        new THREE.Vector3(220, 0, -220),
+        new THREE.Vector3(140, 0, -280),
+        new THREE.Vector3(50, 0, -260),
+        new THREE.Vector3(-10, 0, -160),
+        new THREE.Vector3(-10, 0, -60)
+    ];
+
+    const TRACK_CURVE = new THREE.CatmullRomCurve3(TRACK_POINTS, true);
+    const TRACK_WIDTH = 26;
+    const TOTAL_LAPS = 1;
+
+    let scene, camera, renderer;
+    let playerCar, playerPedestrian, opponents = [];
+    let bullets = [], rockets = [], craters = [], particles = [];
+    let roadsideTrees = [], roadsideSpectators = [];
+    let gatlingTurret, gatlingBarrels, rifleMesh, rocketLauncherMesh;
+
+    function init3D() {
+        const container = document.getElementById('canvas-container');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.0016);
+
+        camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.2, 1000);
+        camera.position.set(0, 3, 10);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.95);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.4);
+        dirLight.position.set(100, 180, 80);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(1200, 1200),
+            new THREE.MeshLambertMaterial({ color: 0x2e7d32 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.05;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        buildTrack();
+        buildZhujiangNewTownLandmarks();
+        buildRoadsideObjects();
+
+        createPlayerCar();
+        createOpponents();
+        createPedestrian();
+
+        setupControls();
+        setupLobbyUI();
+        window.addEventListener('resize', onWindowResize);
+
+        animate();
+    }
+
+    function buildTrack() {
+        const segments = 240, pos = [], uvs = [], indices = [];
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments, pt = TRACK_CURVE.getPointAt(t), tangent = TRACK_CURVE.getTangentAt(t);
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            const left = pt.clone().add(normal.clone().multiplyScalar(TRACK_WIDTH / 2));
+            const right = pt.clone().add(normal.clone().multiplyScalar(-TRACK_WIDTH / 2));
+            pos.push(left.x, 0.01, left.z, right.x, 0.01, right.z);
+            uvs.push(0, t * 40, 1, t * 40);
+            if (i < segments) {
+                const b = i * 2;
+                indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+            }
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+
+        const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d'); ctx.fillStyle = '#242424'; ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = '#ffffff';
+        for (let lane = 1; lane <= 5; lane++) {
+            const x = (512 / 6) * lane; ctx.setLineDash([20, 20]); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+        }
+        ctx.fillStyle = '#eab308'; ctx.fillRect(0, 0, 8, 512); ctx.fillRect(504, 0, 8, 512);
+        const roadTex = new THREE.CanvasTexture(canvas); roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping; roadTex.repeat.set(1, 40);
+
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.7 }));
+        mesh.receiveShadow = true; scene.add(mesh);
+
+        const arch = new THREE.Group();
+        const pMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+        const lp = new THREE.Mesh(new THREE.BoxGeometry(1.5, 12, 1.5), pMat); lp.position.set(-TRACK_WIDTH/2 - 1, 6, 0);
+        const rp = new THREE.Mesh(new THREE.BoxGeometry(1.5, 12, 1.5), pMat); rp.position.set(TRACK_WIDTH/2 + 1, 6, 0);
+        const bCanvas = document.createElement('canvas'); bCanvas.width = 1024; bCanvas.height = 128;
+        const bctx = bCanvas.getContext('2d'); bctx.fillStyle = '#dc2626'; bctx.fillRect(0,0,1024,128);
+        bctx.fillStyle = '#fef08a'; bctx.font = 'bold 44px sans-serif'; bctx.textAlign = 'center'; bctx.textBaseline = 'middle';
+        bctx.fillText('🏁 MARCUS杯珠江新城赛车锦标赛 · 多人联机终点线 🏁', 512, 64);
+        const topB = new THREE.Mesh(new THREE.BoxGeometry(TRACK_WIDTH + 4, 3, 1.2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(bCanvas) }));
+        topB.position.set(0, 11, 0); arch.add(lp, rp, topB); scene.add(arch);
+    }
+
+    function createBuildingSign(text, color = '#fef08a', bgColor = '#0f172a') {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 512, 128);
+        ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.strokeRect(4, 4, 504, 120);
+        ctx.fillStyle = color; ctx.font = 'bold 42px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, 256, 64);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+        return new THREE.Mesh(new THREE.PlaneGeometry(16, 4), mat);
+    }
+
+    function buildZhujiangNewTownLandmarks() {
+        // 1. 广州塔 (Canton Tower)
+        const canton = new THREE.Group();
+        const waistGeo = new THREE.CylinderGeometry(5, 14, 160, 16, 20, true);
+        const p = waistGeo.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+            const pinch = 1 - 0.5 * Math.cos((p.getY(i) / 80) * Math.PI / 2);
+            p.setX(i, p.getX(i) * pinch); p.setZ(i, p.getZ(i) * pinch);
+        }
+        waistGeo.computeVertexNormals();
+        const tMesh = new THREE.Mesh(waistGeo, new THREE.MeshStandardMaterial({ color: 0xec4899, wireframe: true, emissive: 0xbe185d, emissiveIntensity: 0.6 }));
+        tMesh.position.y = 80;
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 2, 45, 8), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
+        mast.position.y = 182.5;
+
+        const cantonSign = createBuildingSign('广州塔 CANTON TOWER', '#ff69b4', '#1e102d');
+        cantonSign.scale.set(1.5, 1.5, 1.5); cantonSign.position.set(0, 50, 16);
+        canton.add(tMesh, mast, cantonSign); canton.position.set(120, 0, 420); scene.add(canton);
+
+        // 2. 西塔 (IFC)
+        const ifcGroup = new THREE.Group();
+        const ifc = new THREE.Mesh(new THREE.CylinderGeometry(14, 22, 140, 18), new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.85 }));
+        ifc.position.y = 70;
+        const ifcSign = createBuildingSign('西塔 · 广州国际金融中心 IFC', '#38bdf8', '#0b192c');
+        ifcSign.scale.set(1.4, 1.4, 1.4); ifcSign.position.set(0, 130, 16);
+        ifcGroup.add(ifc, ifcSign); ifcGroup.position.set(-80, 0, -180); scene.add(ifcGroup);
+
+        // 3. 东塔 (CTF)
+        const ctfGroup = new THREE.Group();
+        const ctf = new THREE.Mesh(new THREE.BoxGeometry(32, 165, 32), new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.15, metalness: 0.9 }));
+        ctf.position.y = 82.5;
+        const ctfSign = createBuildingSign('东塔 · CTF 周大福金融中心', '#facc15', '#1e293b');
+        ctfSign.scale.set(1.4, 1.4, 1.4); ctfSign.position.set(0, 150, 16.5);
+        ctfGroup.add(ctf, ctfSign); ctfGroup.position.set(320, 0, 120); scene.add(ctfGroup);
+
+        // 4. 富力中心 (R&F Centre)
+        const rfGroup = new THREE.Group();
+        const rf = new THREE.Mesh(new THREE.BoxGeometry(26, 120, 26), new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.25, metalness: 0.8 }));
+        rf.position.y = 60;
+        const rfSign = createBuildingSign('富力中心 R&F CENTRE', '#60a5fa', '#0f172a');
+        rfSign.scale.set(1.3, 1.3, 1.3); rfSign.position.set(0, 110, 13.5);
+        rfGroup.add(rf, rfSign); rfGroup.position.set(-90, 0, 60); scene.add(rfGroup);
+
+        // Surrounding Skyscrapers
+        const bColors = [0x1e293b, 0x0284c7, 0x334155, 0x0f766e, 0x475569];
+        for (let i = 0; i < 35; i++) {
+            const h = 40 + Math.random() * 80, w = 20 + Math.random() * 25, d = 20 + Math.random() * 25;
+            const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: bColors[Math.floor(Math.random()*bColors.length)], roughness: 0.3, metalness: 0.7 }));
+            const angle = (i / 35) * Math.PI * 2, rad = 180 + Math.random() * 120;
+            b.position.set(120 + Math.cos(angle)*rad, h/2, Math.sin(angle)*rad); scene.add(b);
+        }
+    }
+
+    function buildRoadsideObjects() {
+        for (let i = 0; i < 80; i++) {
+            const t = i / 80, pt = TRACK_CURVE.getPointAt(t), tangent = TRACK_CURVE.getTangentAt(t);
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            [-1, 1].forEach(side => {
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 4, 6), new THREE.MeshLambertMaterial({ color: 0x854d0e })); trunk.position.y = 2;
+                const fol = new THREE.Mesh(new THREE.ConeGeometry(2.6, 6, 7), new THREE.MeshLambertMaterial({ color: 0x15803d })); fol.position.y = 5.5;
+                tree.add(trunk, fol);
+
+                const pos = pt.clone().add(normal.clone().multiplyScalar(side * (TRACK_WIDTH / 2 + 2.8)));
+                tree.position.set(pos.x, 0, pos.z);
+                scene.add(tree);
+
+                roadsideTrees.push({
+                    mesh: tree, basePos: pos.clone(),
+                    isAirborne: false, vx: 0, vy: 0, vz: 0,
+                    rotSpeedX: 0, rotSpeedZ: 0, disappeared: false, scale: 1.0
+                });
+            });
+        }
+
+        const clothColors = [0xef4444, 0x3b82f6, 0xf59e0b, 0x10b981, 0xec4899, 0x8b5cf6];
+        const hairColors = [0x111827, 0x451a03, 0x78350f, 0x000000];
+
+        for (let i = 0; i < 40; i++) {
+            const t = i / 40, pt = TRACK_CURVE.getPointAt(t), tangent = TRACK_CURVE.getTangentAt(t);
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            const side = (i % 2 === 0) ? 1 : -1;
+            const pos = pt.clone().add(normal.clone().multiplyScalar(side * (TRACK_WIDTH / 2 + 1.6)));
+
+            const human = new THREE.Group();
+            const shirtMat = new THREE.MeshStandardMaterial({ color: clothColors[i % clothColors.length], roughness: 0.7 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+            const skinMat = new THREE.MeshLambertMaterial({ color: 0xffedd5 });
+            const hairMat = new THREE.MeshLambertMaterial({ color: hairColors[i % hairColors.length] });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.3), shirtMat); torso.position.y = 1.05;
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat); head.position.y = 1.62;
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), hairMat); hair.position.y = 1.65;
+            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), skinMat); armL.position.set(-0.35, 1.1, 0); armL.rotation.z = 0.4;
+            const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), skinMat); armR.position.set(0.35, 1.1, 0); armR.rotation.z = -0.4;
+
+            const pomMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+            const pomL = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), pomMat); pomL.position.set(-0.45, 1.35, 0);
+            const pomR = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), pomMat); pomR.position.set(0.45, 1.35, 0);
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.68, 0.2), pantsMat); legL.position.set(-0.16, 0.34, 0);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.68, 0.2), pantsMat); legR.position.set(0.16, 0.34, 0);
+
+            human.add(torso, head, hair, armL, armR, pomL, pomR, legL, legR);
+            human.position.copy(pos); human.lookAt(pt);
+            scene.add(human);
+
+            roadsideSpectators.push({
+                mesh: human, pomL: pomL, pomR: pomR, armL: armL, armR: armR,
+                basePos: pos.clone(), baseLookAt: pt.clone(),
+                isAirborne: false, vx: 0, vy: 0, vz: 0, rotSpeedX: 0, rotSpeedY: 0, seed: Math.random() * 10
+            });
+        }
+    }
+
+    function createNameDecal(nameText, textColor = '#ffffff', bgColor = '#111827') {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 256, 64);
+        ctx.strokeStyle = textColor; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 252, 60);
+        ctx.fillStyle = textColor; ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(nameText, 128, 32);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.MeshBasicMaterial({ map: tex });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.38), mat);
+        mesh.rotation.x = -Math.PI / 2;
+        return mesh;
+    }
+
+    function createLamborghiniMesh(bodyColor, carName = 'MARCUS', isPlayer = false) {
+        const car = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.18, metalness: 0.7 });
+        const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.42, 4.5), bodyMat); chassis.position.y = 0.38; chassis.castShadow = true;
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1, metalness: 0.95 });
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.44, 2.2), cabinMat); cabin.position.set(0, 0.78, -0.2);
+        const hoodWedge = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.24, 1.5), bodyMat); hoodWedge.position.set(0, 0.48, 1.45); hoodWedge.rotation.x = 0.16;
+        const grill = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 0.3), new THREE.MeshBasicMaterial({ color: 0x050505 })); grill.position.set(0, 0.28, 2.22);
+        const headL = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.1), new THREE.MeshBasicMaterial({ color: 0x67e8f9 })); headL.position.set(-0.72, 0.48, 2.23);
+        const headR = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.1), new THREE.MeshBasicMaterial({ color: 0x67e8f9 })); headR.position.set(0.72, 0.48, 2.23);
+        const scoopL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3, 0.7), new THREE.MeshBasicMaterial({ color: 0x0f172a })); scoopL.position.set(-1.08, 0.45, -0.6);
+        const scoopR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3, 0.7), new THREE.MeshBasicMaterial({ color: 0x0f172a })); scoopR.position.set(1.08, 0.45, -0.6);
+        const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.07, 0.48), bodyMat); spoiler.position.set(0, 0.92, -1.95);
+        const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.25), bodyMat); wingL.position.set(-0.85, 0.78, -1.95);
+        const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.25), bodyMat); wingR.position.set(0.85, 0.78, -1.95);
+        const tailLight = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.08, 0.1), new THREE.MeshBasicMaterial({ color: 0xef4444 })); tailLight.position.set(0, 0.52, -2.26);
+
+        car.add(chassis, cabin, hoodWedge, grill, headL, headR, scoopL, scoopR, spoiler, wingL, wingR, tailLight);
+
+        const nameDecal = createNameDecal(carName, isPlayer ? '#fef08a' : '#ffffff', isPlayer ? '#000000' : '#1e293b');
+        nameDecal.position.set(0, 0.62, 1.25); nameDecal.rotation.x = -Math.PI / 2 + 0.16;
+        car.add(nameDecal);
+        car.nameDecal = nameDecal;
+
+        const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.36, 16); wheelGeo.rotateZ(Math.PI / 2);
+        car.wheels = [];
+        [[-1.06, 0.4, 1.35], [1.06, 0.4, 1.35], [-1.06, 0.4, -1.35], [1.06, 0.4, -1.35]].forEach(p => {
+            const wg = new THREE.Group();
+            wg.add(new THREE.Mesh(wheelGeo, new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })));
+            const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.37, 10), new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.85 }));
+            rim.rotateZ(Math.PI / 2); wg.add(rim);
+            wg.position.set(p[0], p[1], p[2]); car.add(wg); car.wheels.push(wg);
+        });
+
+        if (isPlayer) {
+            const sw = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 8, 16), new THREE.MeshLambertMaterial({ color: 0x374151 }));
+            sw.position.set(-0.35, 0.72, 0.2); sw.rotation.x = -0.4; car.add(sw); car.steeringWheel = sw;
+        }
+        return car;
+    }
+
+    function createPlayerCar() {
+        playerCar = {
+            mesh: createLamborghiniMesh(playerProfile.color, playerProfile.name, true),
+            speed: 0, maxSpeed: 1.45, accel: 0.02, brakeRate: 0.035,
+            friction: 0.985, steerAngle: 0, maxSteer: 0.045, progress: 0, lap: 0, rank: 1
+        };
+        const startPt = TRACK_CURVE.getPointAt(0.005);
+        playerCar.mesh.position.copy(startPt); playerCar.mesh.position.x += 3.5; scene.add(playerCar.mesh);
+
+        gatlingTurret = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 0.25, 12), new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.9 })); base.position.y = 0.12;
+        const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.7), new THREE.MeshStandardMaterial({ color: 0x374151, metalness: 0.8 })); gunBody.position.set(0, 0.35, -0.1);
+        gatlingBarrels = new THREE.Group();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const b = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.3, 8), new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.9 }));
+            b.rotation.x = Math.PI / 2; b.position.set(Math.cos(angle) * 0.12, Math.sin(angle) * 0.12, 0.65);
+            gatlingBarrels.add(b);
+        }
+        gunBody.add(gatlingBarrels);
+        gatlingTurret.add(base, gunBody); gatlingTurret.position.set(0, 1.02, -0.2);
+        playerCar.mesh.add(gatlingTurret);
+
+        rifleMesh = new THREE.Group();
+        const rfBase = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 0.2, 12), new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.9 })); rfBase.position.y = 0.1;
+        const rfBody = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, 1.1), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85 })); rfBody.position.set(0, 0.32, 0.1);
+        const rfBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.95 }));
+        rfBarrel.rotation.x = Math.PI / 2; rfBarrel.position.set(0, 0.32, 0.85);
+        const rfScope = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x64748b }));
+        rfScope.rotation.x = Math.PI / 2; rfScope.position.set(0, 0.52, 0.1);
+        rifleMesh.add(rfBase, rfBody, rfBarrel, rfScope);
+        rifleMesh.position.set(0, 1.02, -0.2); rifleMesh.visible = false;
+        playerCar.mesh.add(rifleMesh);
+
+        rocketLauncherMesh = new THREE.Group();
+        const rBase = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.48, 0.22, 12), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 })); rBase.position.y = 0.11;
+        const pod = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.45, 1.1), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85 })); pod.position.set(0, 0.38, 0.1);
+        for (let ix = -1; ix <= 1; ix += 2) {
+            for (let iy = -1; iy <= 1; iy += 2) {
+                const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.15, 12), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 }));
+                tube.rotation.x = Math.PI / 2; tube.position.set(ix * 0.2, iy * 0.12, 0.1);
+                pod.add(tube);
+            }
+        }
+        rocketLauncherMesh.add(rBase, pod); rocketLauncherMesh.position.set(0, 1.02, -0.2);
+        rocketLauncherMesh.visible = false;
+        playerCar.mesh.add(rocketLauncherMesh);
+
+        applyWeaponSelection(WEAPON_TYPES.GATLING);
+    }
+
+    function applyWeaponSelection(weaponType) {
+        selectedWeapon = weaponType;
+        gatlingTurret.visible = (weaponType === WEAPON_TYPES.GATLING);
+        rifleMesh.visible = (weaponType === WEAPON_TYPES.RIFLE);
+        rocketLauncherMesh.visible = (weaponType === WEAPON_TYPES.ROCKET);
+
+        const ammoDots = document.getElementById('ammo-dots');
+        ammoDots.style.display = 'none';
+
+        if (weaponType === WEAPON_TYPES.GATLING) {
+            document.getElementById('fire-btn-title').innerText = '🔥 开火';
+            document.getElementById('fire-btn-sub').innerText = '加特林(速射)';
+            document.getElementById('weapon-status-label').innerText = '无限子弹';
+        } else if (weaponType === WEAPON_TYPES.RIFLE) {
+            document.getElementById('fire-btn-title').innerText = '⚡ 点射';
+            document.getElementById('fire-btn-sub').innerText = '突击步枪(3连发)';
+            document.getElementById('weapon-status-label').innerText = '剩余 3 发';
+            ammoDots.style.display = 'flex';
+            updateRifleAmmoUI();
+        } else if (weaponType === WEAPON_TYPES.ROCKET) {
+            document.getElementById('fire-btn-title').innerText = '🚀 发射';
+            document.getElementById('fire-btn-sub').innerText = '陷阱火箭筒';
+            document.getElementById('weapon-status-label').innerText = '装填完毕';
+        }
+    }
+
+    function updateRifleAmmoUI() {
+        for (let i = 1; i <= 3; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            if (i <= rifleAmmo) dot.className = 'ammo-dot';
+            else dot.className = 'ammo-dot spent';
+        }
+    }
+
+    function createOpponents() {
+        const configs = [
+            { color: 0xef4444, name: 'LEO', offset: -4.0, prog: 0.008, speed: 1.25 },
+            { color: 0x3b82f6, name: 'ALEX', offset: -8.0, prog: 0.015, speed: 1.32 },
+            { color: 0x94a3b8, name: 'MAX', offset: 7.5, prog: 0.011, speed: 1.28 },
+            { color: 0x10b981, name: 'RYAN', offset: 0.0, prog: 0.020, speed: 1.35 }
+        ];
+        opponents = configs.map((cfg, idx) => {
+            const mesh = createLamborghiniMesh(cfg.color, cfg.name, false);
+            const pt = TRACK_CURVE.getPointAt(cfg.prog), tangent = TRACK_CURVE.getTangentAt(cfg.prog);
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            mesh.position.copy(pt).add(normal.multiplyScalar(cfg.offset)); mesh.lookAt(pt.clone().add(tangent));
+            scene.add(mesh);
+            return {
+                id: idx, name: cfg.name, mesh: mesh, laneOffset: cfg.offset, progress: cfg.prog,
+                speed: 0, maxSpeed: cfg.speed, lap: 0,
+                isAirborne: false, vx: 0, vy: 0, vz: 0, rotSpeedX: 0, rotSpeedY: 0, rotSpeedZ: 0,
+                isInstantDying: false, instantDieTimer: 0,
+                isStuckInCrater: false,
+                eliminated: false,
+                isRemotePlayer: false, remotePeerId: null
+            };
+        });
+    }
+
+    function createPedestrian() {
+        playerPedestrian = new THREE.Group();
+        const suit = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.4), suit); torso.position.y = 0.9;
+        const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.7 })); helmet.position.y = 1.5;
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.2), new THREE.MeshBasicMaterial({ color: 0x111827 })); visor.position.set(0, 1.48, 0.22);
+        const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.2), suit); legL.position.set(-0.18, 0.35, 0);
+        const legR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.2), suit); legR.position.set(0.18, 0.35, 0);
+        playerPedestrian.add(torso, helmet, visor, legL, legR);
+        playerPedestrian.legL = legL; playerPedestrian.legR = legR;
+        playerPedestrian.position.set(playerCar.mesh.position.x - 2.5, 0, playerCar.mesh.position.z - 0.5);
+        scene.add(playerPedestrian);
+    }
+
+    function setupLobbyUI() {
+        const inputDriver = document.getElementById('input-driver-name');
+        const colorDots = document.querySelectorAll('.color-dot');
+        const btnCreateRoom = document.getElementById('btn-create-room');
+        const btnJoinRoom = document.getElementById('btn-join-room');
+        const inputRoomCode = document.getElementById('input-room-code');
+        const btnPlaySolo = document.getElementById('btn-play-solo');
+        const btnStartMultiplayer = document.getElementById('btn-start-multiplayer');
+
+        colorDots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                colorDots.forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                playerProfile.color = parseInt(dot.getAttribute('data-color'));
+                playerCar.mesh.children[0].material.color.setHex(playerProfile.color);
+            });
+        });
+
+        inputDriver.addEventListener('input', () => {
+            const val = inputDriver.value.trim().toUpperCase() || 'MARCUS';
+            playerProfile.name = val;
+            scene.remove(playerCar.mesh);
+            playerCar.mesh = createLamborghiniMesh(playerProfile.color, playerProfile.name, true);
+            playerCar.mesh.add(gatlingTurret, rifleMesh, rocketLauncherMesh);
+            scene.add(playerCar.mesh);
+        });
+
+        btnPlaySolo.addEventListener('click', () => {
+            audio.init();
+            net.isMultiplayer = false;
+            document.getElementById('net-status-badge').innerText = '🌐 模式: 单机';
+            enterWalkMode();
+        });
+
+        btnCreateRoom.addEventListener('click', () => {
+            audio.init();
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('profile-step').style.display = 'none';
+            document.getElementById('room-view').style.display = 'flex';
+            document.getElementById('display-room-code').innerText = code;
+            document.getElementById('btn-start-multiplayer').style.display = 'block';
+
+            net.initHost(code, (createdCode) => {
+                document.getElementById('net-status-badge').innerText = `🌐 房主: ${createdCode}`;
+                renderPlayerList([{ id: net.localPlayerId, name: playerProfile.name, color: playerProfile.color, weapon: selectedWeapon }]);
+            });
+        });
+
+        btnJoinRoom.addEventListener('click', () => {
+            const code = inputRoomCode.value.trim().toUpperCase();
+            if (!code || code.length < 4) {
+                alert('请输入正确的 4 位房间码！');
+                return;
+            }
+            audio.init();
+            document.getElementById('profile-step').style.display = 'none';
+            document.getElementById('room-view').style.display = 'flex';
+            document.getElementById('display-room-code').innerText = code;
+            document.getElementById('waiting-host-hint').style.display = 'block';
+
+            net.initClient(code, () => {
+                document.getElementById('net-status-badge').innerText = `🌐 联机: 房间 ${code}`;
+            });
+        });
+
+        btnStartMultiplayer.addEventListener('click', () => {
+            net.broadcast({ type: 'START_MATCH' });
+            startMultiplayerMatch();
+        });
+    }
+
+    function renderPlayerList(players) {
+        const box = document.getElementById('player-list-container');
+        box.innerHTML = '';
+        players.forEach((p, idx) => {
+            const row = document.createElement('div');
+            row.className = 'player-row';
+            const isMe = (p.id === net.localPlayerId);
+            row.innerHTML = `
+                <span>${idx === 0 ? '👑 ' : '🏎️ '}${p.name} ${isMe ? '(我)' : ''}</span>
+                <span style="color:#10b981;">已就绪</span>
+            `;
+            box.appendChild(row);
+        });
+    }
+
+    function updateRoomLobbyUI() {
+        const playerList = [];
+        playerList.push({ id: net.localPlayerId, name: playerProfile.name, color: playerProfile.color, weapon: selectedWeapon });
+        net.remotePlayers.forEach(p => {
+            playerList.push({ id: p.id, name: p.name, color: p.color, weapon: p.weapon });
+        });
+        renderPlayerList(playerList);
+    }
+
+    function enterWalkMode() {
+        document.getElementById('lobby-modal').style.display = 'none';
+        document.getElementById('pre-race-ui').style.display = 'flex';
+        document.getElementById('walk-joystick').style.display = 'flex';
+        gameState = GAME_STATES.WALK;
+    }
+
+    function startMultiplayerMatch() {
+        let remoteIndex = 0;
+        net.remotePlayers.forEach((p, peerId) => {
+            if (remoteIndex < opponents.length) {
+                const opp = opponents[remoteIndex];
+                opp.name = p.name;
+                opp.isRemotePlayer = true;
+                opp.remotePeerId = peerId;
+                scene.remove(opp.mesh);
+                opp.mesh = createLamborghiniMesh(p.color, p.name, false);
+                scene.add(opp.mesh);
+                remoteIndex++;
+            }
+        });
+        enterWalkMode();
+    }
+
+    function spawnGatlingBullet(origin, direction, isRemote = false) {
+        audio.playGatling();
+        const geo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6); geo.rotateX(Math.PI / 2);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
+        mesh.position.copy(origin); mesh.lookAt(origin.clone().add(direction)); scene.add(mesh);
+        bullets.push({ mesh: mesh, dir: direction.clone().normalize(), speed: 5.5, life: 1.0, damage: 'GATLING', isRemote: isRemote });
+    }
+
+    function spawnRifleBullet(origin, direction, isRemote = false) {
+        audio.playRifleShot();
+        const geo = new THREE.CylinderGeometry(0.08, 0.08, 1.1, 6); geo.rotateX(Math.PI / 2);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        mesh.position.copy(origin); mesh.lookAt(origin.clone().add(direction)); scene.add(mesh);
+        bullets.push({ mesh: mesh, dir: direction.clone().normalize(), speed: 6.2, life: 1.0, damage: 'RIFLE', isRemote: isRemote });
+    }
+
+    function spawnRocket(origin, direction, isRemote = false) {
+        audio.playRocketLaunch();
+        const rocket = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.2, 8), new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8 }));
+        body.rotation.x = Math.PI / 2;
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
+        tip.rotation.x = Math.PI / 2; tip.position.z = 0.75;
+        rocket.add(body, tip);
+        rocket.position.copy(origin); rocket.lookAt(origin.clone().add(direction));
+        scene.add(rocket);
+
+        rockets.push({ mesh: rocket, dir: direction.clone().normalize(), speed: 3.4, life: 2.5, isRemote: isRemote });
+    }
+
+    function triggerInstantElimination(carObj, reason = '击毁') {
+        if (carObj.eliminated || carObj.isInstantDying) return;
+        audio.playExplosion(false);
+        carObj.isInstantDying = true;
+        carObj.instantDieTimer = 0.1;
+
+        for (let i = 0; i < 16; i++) {
+            const p = new THREE.Mesh(new THREE.SphereGeometry(0.5 + Math.random()*0.5, 6, 6), new THREE.MeshBasicMaterial({ color: Math.random() > 0.4 ? 0xff4500 : 0xffea00 }));
+            p.position.copy(carObj.mesh.position).add(new THREE.Vector3((Math.random()-0.5)*1.5, Math.random()*1.5, (Math.random()-0.5)*1.5));
+            scene.add(p);
+            particles.push({ mesh: p, vel: new THREE.Vector3((Math.random()-0.5)*12, Math.random()*8+2, (Math.random()-0.5)*12), life: 0.4, fadeSpeed: 2.5 });
+        }
+        showCheerPop(`💥 ${reason} ${carObj.name}！`);
+        net.broadcast({ type: 'ELIMINATE_EVENT', targetName: carObj.name, reason: reason });
+    }
+
+    function triggerRocketExplosion(hitPos) {
+        audio.playExplosion(true);
+
+        for (let i = 0; i < 35; i++) {
+            const fire = new THREE.Mesh(
+                new THREE.SphereGeometry(1.2 + Math.random() * 1.5, 8, 8),
+                new THREE.MeshBasicMaterial({ color: Math.random() > 0.3 ? 0xff3b00 : 0xffd700, transparent: true, opacity: 0.95 })
+            );
+            fire.position.copy(hitPos).add(new THREE.Vector3((Math.random()-0.5)*2, Math.random()*2, (Math.random()-0.5)*2));
+            scene.add(fire);
+            particles.push({
+                mesh: fire,
+                vel: new THREE.Vector3((Math.random()-0.5)*18, Math.random()*14+4, (Math.random()-0.5)*18),
+                life: 0.9, fadeSpeed: 1.1, gravity: -8
+            });
+        }
+
+        const AOE_RADIUS = 9.0;
+        let hitCount = 0;
+        opponents.forEach(opp => {
+            if (!opp.eliminated && !opp.isInstantDying) {
+                const dist = opp.mesh.position.distanceTo(hitPos);
+                if (dist <= AOE_RADIUS) {
+                    triggerInstantElimination(opp, '火箭爆破');
+                    hitCount++;
+                }
+            }
+        });
+        if (hitCount >= 2) {
+            showCheerPop(`🚀 连环爆破！一炮摧毁 ${hitCount} 辆赛车！`);
+        }
+
+        spawnCrater(hitPos);
+        net.broadcast({ type: 'SPAWN_CRATER', pos: { x: hitPos.x, y: hitPos.y, z: hitPos.z } });
+    }
+
+    function spawnCrater(pos) {
+        const craterGroup = new THREE.Group();
+        const pitMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.95 });
+        const pit = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 2.5, 0.4, 16), pitMat);
+        pit.position.y = -0.15;
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xd97706, wireframe: true });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.15, 8, 20), ringMat);
+        ring.rotation.x = Math.PI / 2; ring.position.y = 0.05;
+
+        craterGroup.add(pit, ring);
+        craterGroup.position.set(pos.x, 0.02, pos.z);
+        scene.add(craterGroup);
+
+        craters.push({
+            mesh: craterGroup,
+            pos: new THREE.Vector3(pos.x, 0, pos.z),
+            radius: 3.2
+        });
+
+        showCheerPop('🕳️ 地面炸出深坑陷阱！');
+    }
+
+    function handleRemoteTransform(msg) {
+        const opp = opponents.find(o => o.name === msg.name || (o.remotePeerId && o.remotePeerId === msg.senderId));
+        if (opp && !opp.eliminated && !opp.isAirborne) {
+            opp.mesh.position.set(msg.x, msg.y, msg.z);
+            opp.mesh.rotation.y = msg.rotY;
+            opp.speed = msg.speed;
+            opp.progress = msg.progress;
+            opp.lap = msg.lap;
+        }
+    }
+
+    function handleRemoteFire(msg) {
+        const origin = new THREE.Vector3(msg.origin.x, msg.origin.y, msg.origin.z);
+        const dir = new THREE.Vector3(msg.dir.x, msg.dir.y, msg.dir.z);
+        if (msg.weapon === WEAPON_TYPES.GATLING) spawnGatlingBullet(origin, dir, true);
+        else if (msg.weapon === WEAPON_TYPES.RIFLE) spawnRifleBullet(origin, dir, true);
+        else if (msg.weapon === WEAPON_TYPES.ROCKET) spawnRocket(origin, dir, true);
+    }
+
+    function handleRemoteEliminate(msg) {
+        const opp = opponents.find(o => o.name === msg.targetName);
+        if (opp) triggerInstantElimination(opp, msg.reason);
+    }
+
+    function checkCollisionsAndTraps(dt) {
+        const pPos = playerCar.mesh.position;
+        const pSpeed = Math.abs(playerCar.speed);
+
+        opponents.forEach(opp => {
+            if (!opp.eliminated && !opp.isAirborne && !opp.isInstantDying) {
+                const dist = pPos.distanceTo(opp.mesh.position);
+                if (dist < 2.8) {
+                    audio.playCrashLaunch();
+                    opp.isAirborne = true;
+                    opp.vy = 26 + Math.random() * 8;
+                    const away = opp.mesh.position.clone().sub(pPos).normalize();
+                    opp.vx = away.x * (15 + pSpeed * 10);
+                    opp.vz = away.z * (15 + pSpeed * 10);
+                    opp.rotSpeedX = (Math.random() - 0.5) * 12;
+                    opp.rotSpeedY = (Math.random() - 0.5) * 12;
+                    opp.rotSpeedZ = (Math.random() - 0.5) * 12;
+                    showCheerPop(`🚀 撞飞 ${opp.name}！`);
+                }
+            }
+        });
+
+        roadsideTrees.forEach(tree => {
+            if (!tree.disappeared && !tree.isAirborne) {
+                const dist = pPos.distanceTo(tree.mesh.position);
+                if (dist < 2.4) {
+                    audio.playCrashLaunch();
+                    tree.isAirborne = true;
+                    tree.vy = 22 + Math.random() * 6;
+                    const away = tree.mesh.position.clone().sub(pPos).normalize();
+                    tree.vx = away.x * 12; tree.vz = away.z * 12;
+                    tree.rotSpeedX = (Math.random() - 0.5) * 10;
+                    tree.rotSpeedZ = (Math.random() - 0.5) * 10;
+                    showCheerPop('🌴 撞飞大树！');
+                }
+            }
+        });
+
+        roadsideSpectators.forEach(spec => {
+            if (!spec.isAirborne) {
+                const dist = pPos.distanceTo(spec.mesh.position);
+                if (dist < 1.9) {
+                    audio.playCrashLaunch();
+                    audio.playCheer();
+                    spec.isAirborne = true;
+                    spec.vy = 20 + Math.random() * 6;
+                    const away = spec.mesh.position.clone().sub(pPos).normalize();
+                    spec.vx = away.x * 10; spec.vz = away.z * 10;
+                    spec.rotSpeedX = (Math.random() - 0.5) * 14;
+                    spec.rotSpeedY = (Math.random() - 0.5) * 14;
+                    showCheerPop('📣 观众飞天啦！');
+                }
+            }
+        });
+
+        craters.forEach(crater => {
+            opponents.forEach(opp => {
+                if (!opp.eliminated && !opp.isAirborne && !opp.isInstantDying && !opp.isStuckInCrater) {
+                    const dist = opp.mesh.position.distanceTo(crater.pos);
+                    if (dist < crater.radius) {
+                        opp.isStuckInCrater = true;
+                        opp.speed = 0;
+                        opp.mesh.position.y = -0.25;
+                        opp.mesh.rotation.x = 0.2;
+                        showCheerPop(`🚧 ${opp.name} 陷入大坑，无法启动！`);
+                    }
+                }
+            });
+        });
+    }
+
+    function updateAirbornePhysics(dt) {
+        const GRAVITY = -32.0;
+
+        opponents.forEach(opp => {
+            if (opp.isAirborne && !opp.eliminated) {
+                opp.vy += GRAVITY * dt;
+                opp.mesh.position.x += opp.vx * dt;
+                opp.mesh.position.y += opp.vy * dt;
+                opp.mesh.position.z += opp.vz * dt;
+
+                opp.mesh.rotation.x += opp.rotSpeedX * dt;
+                opp.mesh.rotation.y += opp.rotSpeedY * dt;
+                opp.mesh.rotation.z += opp.rotSpeedZ * dt;
+
+                if (opp.mesh.position.y <= 0 && opp.vy < 0) {
+                    audio.playExplosion(false);
+                    opp.eliminated = true;
+                    opp.mesh.visible = false;
+                    opp.isAirborne = false;
+                    showCheerPop(`💥 ${opp.name} 落地淘汰！`);
+                }
+            }
+
+            if (opp.isInstantDying && !opp.eliminated) {
+                opp.instantDieTimer -= dt;
+                if (opp.instantDieTimer <= 0) {
+                    opp.eliminated = true;
+                    opp.mesh.visible = false;
+                }
+            }
+
+            if (opp.isStuckInCrater && !opp.eliminated && Math.random() > 0.6) {
+                const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.3, 4, 4), new THREE.MeshBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.6 }));
+                smoke.position.copy(opp.mesh.position).add(new THREE.Vector3(0, 0.6, 0));
+                scene.add(smoke);
+                particles.push({ mesh: smoke, vel: new THREE.Vector3(0, 2, 0), life: 0.5, fadeSpeed: 1.5 });
+            }
+        });
+
+        roadsideTrees.forEach(tree => {
+            if (tree.isAirborne && !tree.disappeared) {
+                tree.vy += GRAVITY * dt;
+                tree.mesh.position.x += tree.vx * dt;
+                tree.mesh.position.y += tree.vy * dt;
+                tree.mesh.position.z += tree.vz * dt;
+
+                tree.mesh.rotation.x += tree.rotSpeedX * dt;
+                tree.mesh.rotation.z += tree.rotSpeedZ * dt;
+
+                tree.scale = Math.max(0, tree.scale - dt * 0.45);
+                tree.mesh.scale.set(tree.scale, tree.scale, tree.scale);
+
+                if (tree.mesh.position.y <= 0 || tree.scale <= 0.05) {
+                    tree.disappeared = true;
+                    tree.mesh.visible = false;
+                    tree.isAirborne = false;
+                }
+            }
+        });
+
+        roadsideSpectators.forEach(spec => {
+            if (spec.isAirborne) {
+                spec.vy += GRAVITY * dt;
+                spec.mesh.position.x += spec.vx * dt;
+                spec.mesh.position.y += spec.vy * dt;
+                spec.mesh.position.z += spec.vz * dt;
+
+                spec.mesh.rotation.x += spec.rotSpeedX * dt;
+                spec.mesh.rotation.y += spec.rotSpeedY * dt;
+
+                if (spec.mesh.position.y <= 0 && spec.vy < 0) {
+                    spec.isAirborne = false;
+                    spec.mesh.position.set(spec.basePos.x, 0, spec.basePos.z);
+                    spec.mesh.rotation.set(0, 0, 0);
+                    spec.mesh.lookAt(spec.baseLookAt);
+                    audio.playCheer();
+                    showCheerPop('🎉 观众安全落地！');
+                }
+            }
+        });
+    }
+
+    function setupControls() {
+        const btnGatling = document.getElementById('btn-wpn-gatling');
+        const btnRifle = document.getElementById('btn-wpn-rifle');
+        const btnRocket = document.getElementById('btn-wpn-rocket');
+        const btnNone = document.getElementById('btn-wpn-none');
+
+        const clearWpnClass = () => {
+            btnGatling.className = 'game-btn touchable';
+            btnRifle.className = 'game-btn touchable';
+            btnRocket.className = 'game-btn touchable';
+            btnNone.className = 'game-btn touchable';
+        };
+
+        btnGatling.addEventListener('pointerdown', () => {
+            clearWpnClass(); btnGatling.className = 'game-btn weapon-selected touchable';
+            applyWeaponSelection(WEAPON_TYPES.GATLING);
+        });
+        btnRifle.addEventListener('pointerdown', () => {
+            clearWpnClass(); btnRifle.className = 'game-btn weapon-selected touchable';
+            applyWeaponSelection(WEAPON_TYPES.RIFLE);
+        });
+        btnRocket.addEventListener('pointerdown', () => {
+            clearWpnClass(); btnRocket.className = 'game-btn weapon-selected touchable';
+            applyWeaponSelection(WEAPON_TYPES.ROCKET);
+        });
+        btnNone.addEventListener('pointerdown', () => {
+            clearWpnClass(); btnNone.className = 'game-btn weapon-selected touchable';
+            applyWeaponSelection(WEAPON_TYPES.NONE);
+        });
+
+        document.getElementById('btn-open-door').addEventListener('pointerdown', enterCarAndStartCountdown);
+        document.getElementById('btn-camera').addEventListener('pointerdown', () => {
+            cameraMode = (cameraMode === 'THIRD') ? 'FIRST' : 'THIRD';
+        });
+        document.getElementById('btn-restart').addEventListener('pointerdown', resetGame);
+
+        bindHold('btn-gas', v => input.gas = v);
+        bindHold('btn-brake', v => input.brake = v);
+        bindHold('btn-left', v => input.left = v);
+        bindHold('btn-right', v => input.right = v);
+
+        bindHold('btn-fire', v => {
+            input.fire = v;
+            const b = document.getElementById('btn-fire');
+            if (v) b.classList.add('firing'); else b.classList.remove('firing');
+        });
+
+        setupJoystick();
+        setupAim();
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'w' || e.key === 'ArrowUp') input.gas = true;
+            if (e.key === 's' || e.key === 'ArrowDown') input.brake = true;
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = true;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = true;
+            if (e.key === ' ') input.fire = true;
+            if (e.key === 'c' || e.key === 'C') cameraMode = (cameraMode === 'THIRD') ? 'FIRST' : 'THIRD';
+            if (e.key === 'e' || e.key === 'E') { if (gameState === GAME_STATES.WALK) enterCarAndStartCountdown(); }
+        });
+        window.addEventListener('keyup', e => {
+            if (e.key === 'w' || e.key === 'ArrowUp') input.gas = false;
+            if (e.key === 's' || e.key === 'ArrowDown') input.brake = false;
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = false;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = false;
+            if (e.key === ' ') input.fire = false;
+        });
+    }
+
+    function bindHold(id, cb) {
+        const el = document.getElementById(id);
+        const d = (e) => { e.preventDefault(); el.classList.add('active'); cb(true); };
+        const u = (e) => { e.preventDefault(); el.classList.remove('active'); cb(false); };
+        el.addEventListener('touchstart', d, { passive: false }); el.addEventListener('touchend', u, { passive: false });
+        el.addEventListener('mousedown', d); el.addEventListener('mouseup', u); el.addEventListener('mouseleave', u);
+    }
+
+    function setupJoystick() {
+        const c = document.getElementById('walk-joystick'), s = document.getElementById('walk-stick');
+        let activeTouch = null;
+        const update = (cx, cy) => {
+            const r = c.getBoundingClientRect();
+            let dx = cx - (r.left + r.width/2), dy = cy - (r.top + r.height/2);
+            const dist = Math.hypot(dx, dy), maxR = r.width/2 - 10;
+            if (dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
+            s.style.transform = `translate(${dx}px, ${dy}px)`;
+            input.walkX = dx / maxR; input.walkZ = dy / maxR;
+        };
+        const reset = () => { s.style.transform = 'translate(0px, 0px)'; input.walkX = input.walkZ = 0; activeTouch = null; };
+        c.addEventListener('touchstart', e => { e.preventDefault(); activeTouch = e.changedTouches[0].identifier; update(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
+        c.addEventListener('touchmove', e => { e.preventDefault(); for (let t of e.changedTouches) if (t.identifier === activeTouch) update(t.clientX, t.clientY); }, { passive: false });
+        c.addEventListener('touchend', reset); c.addEventListener('touchcancel', reset);
+    }
+
+    function setupAim() {
+        const zone = document.getElementById('aim-zone'), ch = document.getElementById('crosshair');
+        const handle = (cx, cy) => {
+            const r = zone.getBoundingClientRect();
+            input.aimX = Math.max(-1, Math.min(1, ((cx - r.left)/r.width)*2 - 1));
+            input.aimY = Math.max(-0.5, Math.min(0.8, -(((cy - r.top)/r.height)*2 - 1)));
+            ch.style.left = cx + 'px'; ch.style.top = cy + 'px';
+        };
+        zone.addEventListener('touchstart', e => { e.preventDefault(); ch.style.display = 'block'; handle(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
+        zone.addEventListener('touchmove', e => { e.preventDefault(); handle(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
+    }
+
+    function showCheerPop(text) {
+        const div = document.createElement('div'); div.className = 'cheer-pop'; div.innerText = text;
+        div.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 160) + 'px';
+        div.style.top = (window.innerHeight / 2 - 80) + 'px';
+        document.getElementById('ui-layer').appendChild(div);
+        setTimeout(() => div.remove(), 1200);
+    }
+
+    function enterCarAndStartCountdown() {
+        if (gameState !== GAME_STATES.WALK) return;
+        audio.init(); gameState = GAME_STATES.COUNTDOWN;
+        document.getElementById('pre-race-ui').style.display = 'none';
+        document.getElementById('walk-joystick').style.display = 'none';
+        playerPedestrian.visible = false;
+        document.getElementById('speed-panel').style.display = 'block';
+        document.getElementById('racing-controls').style.display = 'block';
+
+        if (selectedWeapon !== WEAPON_TYPES.NONE) {
+            document.getElementById('weapon-controls').style.display = 'flex';
+            document.getElementById('aim-zone').style.display = 'flex';
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('crosshair').style.left = (window.innerWidth / 2) + 'px';
+            document.getElementById('crosshair').style.top = (window.innerHeight / 2 - 40) + 'px';
+        }
+
+        const banner = document.getElementById('big-banner');
+        banner.style.display = 'block';
+        let count = 3; banner.innerText = count; audio.playCountdown(false);
+        const timer = setInterval(() => {
+            count--;
+            if (count > 0) { banner.innerText = count; audio.playCountdown(false); }
+            else if (count === 0) { banner.innerText = 'GO!'; audio.playCountdown(true); audio.startEngine(); gameState = GAME_STATES.RACING; }
+            else { clearInterval(timer); banner.style.display = 'none'; }
+        }, 1000);
+    }
+
+    function checkFinishLine(rank) {
+        if (gameState === GAME_STATES.GAMEOVER) return;
+        gameState = GAME_STATES.GAMEOVER; audio.stopEngine();
+        document.getElementById('racing-controls').style.display = 'none';
+        document.getElementById('speed-panel').style.display = 'none';
+        document.getElementById('crosshair').style.display = 'none';
+
+        const modal = document.getElementById('result-modal');
+        const title = document.getElementById('result-title'), desc = document.getElementById('result-desc');
+        modal.style.display = 'flex';
+
+        if (rank <= 3) {
+            audio.playVictory();
+            title.innerText = `🎉 ${playerProfile.name} 获胜！`; title.style.color = '#facc15';
+            desc.innerHTML = `太棒了！你的兰博基尼 ${playerProfile.name} 在广州珠江新城对决中获得了 <strong style="font-size:24px; color:#facc15;">第 ${rank} 名</strong>！`;
+        } else {
+            title.innerText = '🏁 比赛结束'; title.style.color = '#ef4444';
+            desc.innerHTML = `你落后了！未能进入前三名。请再接再厉！`;
+        }
+    }
+
+    function resetGame() {
+        document.getElementById('result-modal').style.display = 'none';
+        document.getElementById('pre-race-ui').style.display = 'flex';
+        document.getElementById('walk-joystick').style.display = 'flex';
+        document.getElementById('btn-open-door').style.display = 'none';
+        document.getElementById('speed-panel').style.display = 'none';
+        document.getElementById('racing-controls').style.display = 'none';
+        document.getElementById('crosshair').style.display = 'none';
+
+        gameState = GAME_STATES.WALK; cameraMode = 'THIRD';
+        rocketCooldownTimer = 0;
+        rifleAmmo = 3; rifleReloadTimer = 0; rifleBurstCount = 0;
+        updateRifleAmmoUI();
+
+        const startPt = TRACK_CURVE.getPointAt(0.005);
+        playerCar.mesh.position.copy(startPt); playerCar.mesh.position.x += 3.5;
+        playerCar.mesh.position.y = 0; playerCar.mesh.rotation.set(0, 0, 0);
+        playerCar.speed = 0; playerCar.progress = 0.005; playerCar.lap = 0;
+
+        playerPedestrian.visible = true;
+        playerPedestrian.position.set(playerCar.mesh.position.x - 2.5, 0, playerCar.mesh.position.z - 0.5);
+
+        opponents.forEach(opp => {
+            const pt = TRACK_CURVE.getPointAt(0.01 + opp.id * 0.006), tangent = TRACK_CURVE.getTangentAt(0.01 + opp.id * 0.006);
+            const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+            opp.progress = 0.01 + opp.id * 0.006;
+            opp.mesh.position.copy(pt).add(normal.multiplyScalar(opp.laneOffset));
+            opp.mesh.lookAt(pt.clone().add(tangent));
+            opp.mesh.visible = true; opp.speed = 0; opp.lap = 0;
+            opp.isAirborne = false; opp.isInstantDying = false; opp.isStuckInCrater = false; opp.eliminated = false;
+        });
+
+        roadsideTrees.forEach(t => {
+            t.mesh.position.copy(t.basePos); t.mesh.rotation.set(0,0,0);
+            t.scale = 1.0; t.mesh.scale.set(1,1,1); t.mesh.visible = true;
+            t.isAirborne = false; t.disappeared = false;
+        });
+
+        roadsideSpectators.forEach(s => {
+            s.mesh.position.copy(s.basePos); s.mesh.rotation.set(0,0,0);
+            s.mesh.lookAt(s.baseLookAt); s.isAirborne = false;
+        });
+
+        craters.forEach(c => scene.remove(c.mesh)); craters = [];
+        bullets.forEach(b => scene.remove(b.mesh)); bullets = [];
+        rockets.forEach(r => scene.remove(r.mesh)); rockets = [];
+        particles.forEach(p => scene.remove(p.mesh)); particles = [];
+        document.getElementById('lap-display').innerText = `0 / ${TOTAL_LAPS}`;
+        document.getElementById('rank-display').innerText = `1 / 5`;
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.1);
+        const time = clock.getElapsedTime();
+
+        roadsideSpectators.forEach(s => {
+            if (!s.isAirborne) {
+                s.pomL.position.y = 1.35 + Math.sin(time * 6 + s.seed) * 0.22;
+                s.pomR.position.y = 1.35 + Math.cos(time * 6 + s.seed) * 0.22;
+                s.armL.rotation.z = 0.4 + Math.sin(time * 6 + s.seed) * 0.2;
+                s.armR.rotation.z = -0.4 - Math.cos(time * 6 + s.seed) * 0.2;
+                s.mesh.position.y = Math.abs(Math.sin(time * 4 + s.seed)) * 0.15;
+            }
+        });
+
+        if (gameState === GAME_STATES.WALK) {
+            updateWalkMode(dt, time);
+        } else if (gameState === GAME_STATES.COUNTDOWN) {
+            updateCarCamera();
+        } else if (gameState === GAME_STATES.RACING) {
+            updateRacingMode(dt, time);
+        }
+
+        updateAirbornePhysics(dt);
+        updateProjectilesAndParticles(dt);
+
+        renderer.render(scene, camera);
+    }
+
+    function updateWalkMode(dt, time) {
+        const dx = input.walkX * 6.0 * dt, dz = input.walkZ * 6.0 * dt;
+        playerPedestrian.position.x += dx; playerPedestrian.position.z += dz;
+        if (Math.hypot(dx, dz) > 0.001) {
+            playerPedestrian.legL.rotation.x = Math.sin(time * 12) * 0.6;
+            playerPedestrian.legR.rotation.x = -Math.sin(time * 12) * 0.6;
+            playerPedestrian.rotation.y = Math.atan2(dx, dz);
+        }
+        camera.position.lerp(new THREE.Vector3(playerPedestrian.position.x, playerPedestrian.position.y + 3.2, playerPedestrian.position.z - 5.5), 0.1);
+        camera.lookAt(playerPedestrian.position.x, playerPedestrian.position.y + 1.2, playerPedestrian.position.z);
+        document.getElementById('btn-open-door').style.display = playerPedestrian.position.distanceTo(playerCar.mesh.position) < 3.2 ? 'block' : 'none';
+    }
+
+    function updateRacingMode(dt, time) {
+        if (input.gas) playerCar.speed = Math.min(playerCar.speed + playerCar.accel, playerCar.maxSpeed);
+        else if (input.brake) playerCar.speed = Math.max(playerCar.speed - playerCar.brakeRate, -0.4);
+        else playerCar.speed *= playerCar.friction;
+
+        const steerDir = (input.left ? 1 : 0) + (input.right ? -1 : 0);
+        playerCar.steerAngle = THREE.MathUtils.lerp(playerCar.steerAngle, steerDir * playerCar.maxSteer, 0.2);
+        if (Math.abs(playerCar.speed) > 0.01) playerCar.mesh.rotation.y += playerCar.steerAngle * (playerCar.speed > 0 ? 1 : -1);
+
+        playerCar.mesh.wheels.forEach(w => w.children[0].rotation.x += playerCar.speed * 0.5);
+        if (playerCar.mesh.steeringWheel) playerCar.mesh.steeringWheel.rotation.z = -playerCar.steerAngle * 8;
+
+        const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(playerCar.mesh.quaternion);
+        playerCar.mesh.position.add(fwd.multiplyScalar(playerCar.speed));
+        document.getElementById('speed-val').innerText = Math.floor(Math.abs(playerCar.speed) * 160);
+        audio.setEnginePitch(Math.abs(playerCar.speed) / playerCar.maxSpeed);
+
+        updatePlayerTrackProgress();
+        checkCollisionsAndTraps(dt);
+
+        opponents.forEach(opp => {
+            if (opp.eliminated || opp.isAirborne || opp.isInstantDying || opp.isStuckInCrater) return;
+            if (!opp.isRemotePlayer) {
+                opp.speed = THREE.MathUtils.lerp(opp.speed, opp.maxSpeed, 0.02);
+                opp.progress = (opp.progress + opp.speed * 0.00038) % 1;
+                const pt = TRACK_CURVE.getPointAt(opp.progress), tangent = TRACK_CURVE.getTangentAt(opp.progress);
+                const norm = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+                opp.mesh.position.copy(pt).add(norm.multiplyScalar(opp.laneOffset));
+                opp.mesh.lookAt(pt.clone().add(tangent));
+            }
+        });
+
+        if (net.isMultiplayer && (time - net.lastBroadcastTime > 0.04)) {
+            net.lastBroadcastTime = time;
+            net.broadcast({
+                type: 'SYNC_TRANSFORM',
+                senderId: net.localPlayerId,
+                name: playerProfile.name,
+                x: playerCar.mesh.position.x,
+                y: playerCar.mesh.position.y,
+                z: playerCar.mesh.position.z,
+                rotY: playerCar.mesh.rotation.y,
+                speed: playerCar.speed,
+                progress: playerCar.progress,
+                lap: playerCar.lap
+            });
+        }
+
+        const active = [{ isPlayer: true, s: playerCar.lap + playerCar.progress }];
+        opponents.forEach(o => { if (!o.eliminated) active.push({ isPlayer: false, s: o.lap + o.progress }); });
+        active.sort((a, b) => b.s - a.s);
+        playerCar.rank = active.findIndex(c => c.isPlayer) + 1;
+        document.getElementById('rank-display').innerText = `${playerCar.rank} / ${active.length}`;
+
+        updateWeapons(dt, time);
+        updateCarCamera();
+    }
+
+    function updateWeapons(dt, time) {
+        if (selectedWeapon === WEAPON_TYPES.NONE) return;
+
+        const targetYaw = input.aimX * 0.8;
+        const targetPitch = -input.aimY * 0.4;
+        let activeMount = gatlingTurret;
+        if (selectedWeapon === WEAPON_TYPES.RIFLE) activeMount = rifleMesh;
+        else if (selectedWeapon === WEAPON_TYPES.ROCKET) activeMount = rocketLauncherMesh;
+
+        activeMount.rotation.y = THREE.MathUtils.lerp(activeMount.rotation.y, targetYaw, 0.15);
+        activeMount.children[1].rotation.x = THREE.MathUtils.lerp(activeMount.children[1].rotation.x, targetPitch, 0.15);
+
+        if (selectedWeapon === WEAPON_TYPES.GATLING) {
+            if (input.fire) {
+                gatlingBarrels.rotation.z += 0.7;
+                if (time - lastFireTime > GATLING_INTERVAL) {
+                    lastFireTime = time;
+                    const mPos = new THREE.Vector3(0, 0, 1.4); activeMount.children[1].localToWorld(mPos);
+                    const fDir = new THREE.Vector3(0, 0, 1).applyQuaternion(activeMount.children[1].getWorldQuaternion(new THREE.Quaternion()));
+                    fDir.x += (Math.random() - 0.5) * 0.04; fDir.y += (Math.random() - 0.5) * 0.04; fDir.normalize();
+                    spawnGatlingBullet(mPos, fDir);
+                    net.broadcast({ type: 'FIRE_EVENT', weapon: WEAPON_TYPES.GATLING, origin: { x: mPos.x, y: mPos.y, z: mPos.z }, dir: { x: fDir.x, y: fDir.y, z: fDir.z } });
+                }
+            }
+        } else if (selectedWeapon === WEAPON_TYPES.RIFLE) {
+            if (rifleReloadTimer > 0) {
+                rifleReloadTimer -= dt;
+                document.getElementById('btn-fire').classList.add('disabled');
+                document.getElementById('weapon-status-label').innerText = `装填中 ${rifleReloadTimer.toFixed(1)}s`;
+                if (rifleReloadTimer <= 0) {
+                    rifleAmmo = 3;
+                    updateRifleAmmoUI();
+                    audio.playReloadReady();
+                    document.getElementById('btn-fire').classList.remove('disabled');
+                    document.getElementById('weapon-status-label').innerText = '剩余 3 发';
+                    showCheerPop('⚡ 突击步枪弹匣已补满！');
+                }
+            }
+
+            if (rifleBurstCount > 0) {
+                rifleBurstTimer -= dt;
+                if (rifleBurstTimer <= 0) {
+                    rifleBurstCount--;
+                    rifleBurstTimer = 0.11;
+                    const mPos = new THREE.Vector3(0, 0.32, 1.3); activeMount.children[1].localToWorld(mPos);
+                    const fDir = new THREE.Vector3(0, 0, 1).applyQuaternion(activeMount.children[1].getWorldQuaternion(new THREE.Quaternion()));
+                    spawnRifleBullet(mPos, fDir);
+                    net.broadcast({ type: 'FIRE_EVENT', weapon: WEAPON_TYPES.RIFLE, origin: { x: mPos.x, y: mPos.y, z: mPos.z }, dir: { x: fDir.x, y: fDir.y, z: fDir.z } });
+                }
+            }
+
+            if (input.fire && rifleAmmo > 0 && rifleBurstCount === 0 && rifleReloadTimer <= 0) {
+                rifleBurstCount = 3;
+                rifleBurstTimer = 0;
+                rifleAmmo = 0;
+                updateRifleAmmoUI();
+                rifleReloadTimer = RIFLE_RELOAD_TIME;
+            }
+        } else if (selectedWeapon === WEAPON_TYPES.ROCKET) {
+            if (rocketCooldownTimer > 0) {
+                rocketCooldownTimer -= dt;
+                document.getElementById('btn-fire').classList.add('disabled');
+                document.getElementById('weapon-status-label').innerText = `装填中 ${rocketCooldownTimer.toFixed(1)}s`;
+                if (rocketCooldownTimer <= 0) {
+                    audio.playReloadReady();
+                    document.getElementById('btn-fire').classList.remove('disabled');
+                    document.getElementById('weapon-status-label').innerText = '已装填 (可发射)';
+                    showCheerPop('🚀 陷阱火箭筒装填完毕！');
+                }
+            }
+
+            if (input.fire && rocketCooldownTimer <= 0) {
+                rocketCooldownTimer = ROCKET_COOLDOWN;
+                const mPos = new THREE.Vector3(0, 0, 1.2); activeMount.children[1].localToWorld(mPos);
+                const fDir = new THREE.Vector3(0, 0, 1).applyQuaternion(activeMount.children[1].getWorldQuaternion(new THREE.Quaternion()));
+                spawnRocket(mPos, fDir);
+                net.broadcast({ type: 'FIRE_EVENT', weapon: WEAPON_TYPES.ROCKET, origin: { x: mPos.x, y: mPos.y, z: mPos.z }, dir: { x: fDir.x, y: fDir.y, z: fDir.z } });
+            }
+        }
+    }
+
+    function updatePlayerTrackProgress() {
+        let closestT = playerCar.progress, minDist = Infinity;
+        for (let i = -10; i <= 10; i++) {
+            let testT = (playerCar.progress + i * 0.002 + 1) % 1;
+            const d = TRACK_CURVE.getPointAt(testT).distanceTo(playerCar.mesh.position);
+            if (d < minDist) { minDist = d; closestT = testT; }
+        }
+        if (playerCar.progress > 0.85 && closestT < 0.15) {
+            playerCar.lap++;
+            document.getElementById('lap-display').innerText = `${playerCar.lap} / ${TOTAL_LAPS}`;
+            audio.playCheer(); showCheerPop(`🏁 ${playerProfile.name} 冲过终点线！`);
+            if (playerCar.lap >= TOTAL_LAPS) checkFinishLine(playerCar.rank);
+        }
+        playerCar.progress = closestT;
+    }
+
+    function updateCarCamera() {
+        if (cameraMode === 'THIRD') {
+            const off = new THREE.Vector3(0, 2.5, -6.5).applyQuaternion(playerCar.mesh.quaternion);
+            camera.position.lerp(playerCar.mesh.position.clone().add(off), 0.15);
+            camera.lookAt(playerCar.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 5).applyQuaternion(playerCar.mesh.quaternion)));
+        } else {
+            const cPos = playerCar.mesh.position.clone().add(new THREE.Vector3(-0.35, 0.95, 0.1).applyQuaternion(playerCar.mesh.quaternion));
+            camera.position.copy(cPos);
+            camera.lookAt(cPos.clone().add(new THREE.Vector3(0, 0, 10).applyQuaternion(playerCar.mesh.quaternion)));
+        }
+    }
+
+    function updateProjectilesAndParticles(dt) {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const b = bullets[i];
+            b.mesh.position.add(b.dir.clone().multiplyScalar(b.speed));
+            b.life -= dt;
+
+            for (let opp of opponents) {
+                if (!opp.eliminated && !opp.isInstantDying && b.mesh.position.distanceTo(opp.mesh.position) < 2.3) {
+                    triggerInstantElimination(opp, b.damage === 'RIFLE' ? '突击步枪打爆' : '加特林击毁');
+                    scene.remove(b.mesh);
+                    bullets.splice(i, 1);
+                    break;
+                }
+            }
+
+            if (b.life <= 0 && bullets[i]) { scene.remove(b.mesh); bullets.splice(i, 1); }
+        }
+
+        for (let i = rockets.length - 1; i >= 0; i--) {
+            const r = rockets[i];
+            r.mesh.position.add(r.dir.clone().multiplyScalar(r.speed));
+            r.life -= dt;
+
+            if (Math.random() > 0.3) {
+                const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.25, 4, 4), new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.8 }));
+                smoke.position.copy(r.mesh.position);
+                scene.add(smoke);
+                particles.push({ mesh: smoke, vel: new THREE.Vector3((Math.random()-0.5)*2, Math.random()*2, (Math.random()-0.5)*2), life: 0.35, fadeSpeed: 2.2 });
+            }
+
+            let exploded = false;
+            for (let opp of opponents) {
+                if (!opp.eliminated && !opp.isInstantDying && r.mesh.position.distanceTo(opp.mesh.position) < 2.8) {
+                    triggerRocketExplosion(r.mesh.position);
+                    exploded = true;
+                    break;
+                }
+            }
+
+            if (!exploded && (r.life <= 0 || r.mesh.position.y <= 0.2)) {
+                triggerRocketExplosion(r.mesh.position);
+                exploded = true;
+            }
+
+            if (exploded && rockets[i]) {
+                scene.remove(r.mesh);
+                rockets.splice(i, 1);
+            }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i]; p.life -= dt;
+            if (p.vel) {
+                p.mesh.position.add(p.vel.clone().multiplyScalar(dt));
+                if (p.gravity) p.vel.y += p.gravity * dt;
+            }
+            if (p.fadeSpeed && p.mesh.material && p.mesh.material.opacity) {
+                p.mesh.material.opacity = Math.max(0, p.mesh.material.opacity - p.fadeSpeed * dt);
+            }
+            if (p.life <= 0) { scene.remove(p.mesh); particles.splice(i, 1); }
+        }
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('DOMContentLoaded', init3D);
+    </script>
+</body>
+</html>

@@ -639,6 +639,30 @@ h3 {
   font-size: 18px;
 }
 
+.case-section {
+  max-width: none;
+  padding-left: max(22px, calc((100vw - 1180px) / 2));
+  padding-right: max(22px, calc((100vw - 1180px) / 2));
+  background: #fff7ec;
+}
+
+.student-case {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.student-case p {
+  color: var(--muted);
+  font-size: 18px;
+}
+
 .survey-card {
   display: grid;
   justify-items: center;
@@ -710,6 +734,11 @@ h3 {
   }
 
   .registration-cta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-case {
     align-items: flex-start;
     flex-direction: column;
   }
