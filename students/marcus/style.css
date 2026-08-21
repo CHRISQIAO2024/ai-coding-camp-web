@@ -474,12 +474,22 @@ h3 {
 
 .footer-inner {
   padding-top: 24px;
-  padding-bottom: 28px;
+  padding-bottom: 14px;
   color: rgba(255, 255, 255, 0.76);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.copyright-note {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 22px 28px;
+  color: rgba(255, 255, 255, 0.68);
+  font-family: "Microsoft YaHei", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.8;
 }
 
 @media (max-width: 980px) {
