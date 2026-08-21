@@ -663,6 +663,14 @@ h3 {
   font-size: 18px;
 }
 
+.student-case .usage-note {
+  margin-top: 12px;
+  color: #5e4a16;
+  font-family: "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
 .student-case-actions {
   display: flex;
   flex-wrap: wrap;
