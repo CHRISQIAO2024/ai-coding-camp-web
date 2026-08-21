@@ -447,6 +447,35 @@ h3 {
   border: 0;
 }
 
+.ownership-section {
+  background:
+    linear-gradient(135deg, rgba(255, 216, 77, 0.22), rgba(0, 168, 157, 0.14)),
+    #fffdf5;
+}
+
+.ownership-card {
+  max-width: 1180px;
+  padding: 28px 32px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 10px 10px 0 var(--yellow);
+}
+
+.ownership-card h2 {
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: clamp(30px, 4vw, 52px);
+}
+
+.ownership-card p:last-child {
+  max-width: 960px;
+  color: #26344a;
+  font-family: "Microsoft YaHei", Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.9;
+}
+
 .process-line {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
