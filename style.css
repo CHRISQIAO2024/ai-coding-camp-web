@@ -544,6 +544,33 @@ h3 {
   font-size: 18px;
 }
 
+.inspiration-section {
+  max-width: none;
+  padding-left: max(22px, calc((100vw - 1180px) / 2));
+  padding-right: max(22px, calc((100vw - 1180px) / 2));
+  background:
+    radial-gradient(circle at 18% 24%, rgba(229, 127, 31, 0.12), transparent 24%),
+    linear-gradient(180deg, #f4f0e6 0%, #fffdf7 100%);
+}
+
+.inspiration-feature {
+  max-width: 1180px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.inspiration-feature p {
+  color: var(--muted);
+  font-size: 18px;
+}
+
 .student-case .usage-note {
   margin-top: 12px;
   color: #5e4a16;
@@ -801,7 +828,8 @@ h3 {
   }
 
   .student-case,
-  .gallery-feature {
+  .gallery-feature,
+  .inspiration-feature {
     align-items: flex-start;
     flex-direction: column;
   }
