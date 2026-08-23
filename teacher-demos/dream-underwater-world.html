@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梦幻海底世界 - Three.js</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        body {
+            overflow: hidden;
+            background-color: #0d2b45;
+            transition: background-color 1.5s ease;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        /* UI 交互界面 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+        }
+        .header-title {
+            color: #ffffff;
+            text-shadow: 0 4px 12px rgba(0, 150, 255, 0.5);
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 10px 24px;
+            border-radius: 30px;
+            align-self: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 28px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            align-self: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #4dd0e1, #00acc1);
+            color: white;
+            border: none;
+            padding: 12px 26px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 172, 193, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 172, 193, 0.6);
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
+        .btn-night {
+            background: linear-gradient(135deg, #7e57c2, #4527a0);
+            box-shadow: 0 4px 15px rgba(126, 87, 194, 0.4);
+        }
+        .btn-night:hover {
+            box-shadow: 0 6px 20px rgba(126, 87, 194, 0.6);
+        }
+        .tip-text {
+            position: absolute;
+            bottom: 80px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+    </style>
+    <!-- 引入 Three.js 和 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="header-title">🌊 梦幻海底世界</div>
+        <div class="tip-text">💡 提示：点击海水任意位置，可喷射彩虹泡泡！按住鼠标拖拽可旋转视角。</div>
+        <div class="controls">
+            <button class="btn" onclick="setDayMode()">白天海底</button>
+            <button class="btn btn-night" onclick="setNightMode()">夜晚海底</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 基础场景初始化 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        // 颜色配置（马卡龙梦幻配色）
+        const themeColors = {
+            day: {
+                bg: '#1a6b9c',
+                fog: '#1e7db5',
+                ambient: 0x90caf9,
+                ambientInt: 0.9,
+                dirLight: 0xffffff,
+                dirInt: 1.2
+            },
+            night: {
+                bg: '#051329',
+                fog: '#081c3a',
+                ambient: 0x3f51b5,
+                ambientInt: 0.5,
+                dirLight: 0x80deea,
+                dirInt: 0.5
+            }
+        };
+
+        scene.background = new THREE.Color(themeColors.day.bg);
+        scene.fog = new THREE.FogExp2(themeColors.day.fog, 0.012);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 42);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1; // 允许稍微俯视海底
+        controls.minDistance = 15;
+        controls.maxDistance = 70;
+
+        // --- 2. 灯光架构（柔和温暖氛围）---
+        const ambientLight = new THREE.AmbientLight(themeColors.day.ambient, themeColors.day.ambientInt);
+        scene.add(ambientLight);
+
+        // 顶部贯穿水面的太阳光/月光
+        const dirLight = new THREE.DirectionalLight(themeColors.day.dirLight, themeColors.day.dirInt);
+        dirLight.position.set(10, 40, 20);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // 水下点光源补充（营造梦幻高光）
+        const pointLight = new THREE.PointLight(0x00e676, 0.8, 50);
+        pointLight.position.set(-10, -5, 10);
+        scene.add(pointLight);
+
+        // --- 3. 材质库 ---
+        const materials = {
+            sand: new THREE.MeshStandardMaterial({ color: 0xffecb3, roughness: 0.9, metalness: 0.1 }),
+            coral1: new THREE.MeshStandardMaterial({ color: 0xff4081, roughness: 0.3 }), // 亮粉
+            coral2: new THREE.MeshStandardMaterial({ color: 0xff9100, roughness: 0.4 }), // 橙黄
+            coral3: new THREE.MeshStandardMaterial({ color: 0x7c4dff, roughness: 0.3 }), // 紫罗兰
+            seaweed: new THREE.MeshStandardMaterial({ color: 0x00e676, roughness: 0.5, side: THREE.DoubleSide }),
+            bubble: new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.45,
+                roughness: 0.05,
+                transmission: 0.9,
+                thickness: 0.5,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            })
+        };
+
+        // --- 4. 海底地形与波浪打光 ---
+        const sandGeo = new THREE.PlaneGeometry(120, 120, 64, 64);
+        // 给沙滩做凹凸不平的效果
+        const posAttr = sandGeo.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const vx = posAttr.getX(i);
+            const vy = posAttr.getY(i);
+            const z = Math.sin(vx * 0.1) * Math.cos(vy * 0.1) * 1.5 + Math.sin(vx * 0.05) * 2;
+            posAttr.setZ(i, z);
+        }
+        sandGeo.computeVertexNormals();
+
+        const seabed = new THREE.Mesh(sandGeo, materials.sand);
+        seabed.rotation.x = -Math.PI / 2;
+        seabed.position.y = -12;
+        seabed.receiveShadow = true;
+        scene.add(seabed);
+
+        // --- 5. 组装可爱小鱼模型与群体分布 ---
+        // 5种马卡龙鱼身配色
+        const fishColors = [0xff5252, 0xff4081, 0x448aff, 0xffd740, 0x69f0ae];
+
+        function createCuteFish(colorHex) {
+            const fishGroup = new THREE.Group();
+            const fishMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
+
+            // 鱼身（胖乎乎的椭球）
+            const bodyGeo = new THREE.SphereGeometry(1.2, 32, 32);
+            bodyGeo.scale(1.5, 1, 0.8);
+            const body = new THREE.Mesh(bodyGeo, fishMat);
+            body.castShadow = true;
+            fishGroup.add(body);
+
+            // 眼睛（大萌眼）
+            const eyeWhiteGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const eyeBlackGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            const eyeBlackMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+            // 左眼
+            const eyeL = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+            eyeL.position.set(0.9, 0.2, 0.6);
+            const pupilL = new THREE.Mesh(eyeBlackGeo, eyeBlackMat);
+            pupilL.position.set(1.0, 0.2, 0.75);
+            fishGroup.add(eyeL, pupilL);
+
+            // 右眼
+            const eyeR = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+            eyeR.position.set(0.9, 0.2, -0.6);
+            const pupilR = new THREE.Mesh(eyeBlackGeo, eyeBlackMat);
+            pupilR.position.set(1.0, 0.2, -0.75);
+            fishGroup.add(eyeR, pupilR);
+
+            // 尾巴（层次感扇形）
+            const tailGeo = new THREE.ConeGeometry(1, 1.8, 16);
+            const tail = new THREE.Mesh(tailGeo, fishMat);
+            tail.rotation.z = -Math.PI / 2;
+            tail.position.set(-2, 0, 0);
+            tail.scale.set(0.3, 1, 1.2);
+            tail.castShadow = true;
+            fishGroup.add(tail);
+
+            // 背鳍
+            const finGeo = new THREE.ConeGeometry(0.6, 1.2, 16);
+            const fin = new THREE.Mesh(finGeo, fishMat);
+            fin.rotation.x = Math.PI / 6;
+            fin.position.set(0, 1.2, 0);
+            fishGroup.add(fin);
+
+            fishGroup.tail = tail; // 引用尾巴用于动画
+            fishGroup.scale.set(0.8, 0.8, 0.8);
+            return fishGroup;
+        }
+
+        // 生成 5 条彩色小鱼，并分配独立的游动路线数据
+        const fishes = [];
+        for (let i = 0; i < 5; i++) {
+            const fish = createCuteFish(fishColors[i]);
+            scene.add(fish);
+
+            fishes.push({
+                mesh: fish,
+                angle: (i / 5) * Math.PI * 2, // 初始角度
+                radiusX: 12 + Math.random() * 10, // 椭圆游动轨道半径
+                radiusZ: 10 + Math.random() * 8,
+                speed: 0.3 + Math.random() * 0.2, // 游动速度
+                yOffset: -4 + i * 2.5, // 垂直高度分层
+                wiggleSpeed: 8 + Math.random() * 4 // 摆尾频率
+            });
+        }
+
+        // --- 6. 珊瑚与海草造景 ---
+        // 珊瑚造景
+        function createCoralCluster(x, z) {
+            const group = new THREE.Group();
+            const colors = [materials.coral1, materials.coral2, materials.coral3];
+
+            // 多个鹿角/分支圆锥组合成珊瑚
+            for (let i = 0; i < 6; i++) {
+                const mat = colors[Math.floor(Math.random() * colors.length)];
+                const height = 2 + Math.random() * 3;
+                const coralGeo = new THREE.ConeGeometry(0.6, height, 8);
+                const branch = new THREE.Mesh(coralGeo, mat);
+                branch.position.set(
+                    (Math.random() - 0.5) * 2,
+                    height / 2,
+                    (Math.random() - 0.5) * 2
+                );
+                branch.rotation.x = (Math.random() - 0.5) * 0.4;
+                branch.rotation.z = (Math.random() - 0.5) * 0.4;
+                branch.castShadow = true;
+                group.add(branch);
+            }
+            group.position.set(x, -11.5, z);
+            scene.add(group);
+        }
+
+        createCoralCluster(-15, -5);
+        createCoralCluster(18, -8);
+        createCoralCluster(-8, 12);
+        createCoralCluster(10, 8);
+
+        // 柔和摇摆的海草
+        const seaweeds = [];
+        function createSeaweed(x, z) {
+            const group = new THREE.Group();
+            const bladeCount = 5;
+
+            for (let i = 0; i < bladeCount; i++) {
+                // 用条带 Plane 组合海草叶片
+                const height = 6 + Math.random() * 4;
+                const geo = new THREE.PlaneGeometry(0.5, height, 1, 8);
+                const blade = new THREE.Mesh(geo, materials.seaweed);
+                blade.position.set((Math.random() - 0.5) * 1.5, height / 2, (Math.random() - 0.5) * 1.5);
+                blade.rotation.y = Math.random() * Math.PI;
+                group.add(blade);
+
+                seaweeds.push({
+                    mesh: blade,
+                    initialGeo: geo,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 1.5 + Math.random()
+                });
+            }
+            group.position.set(x, -11.5, z);
+            scene.add(group);
+        }
+
+        // 批量放置海草丛
+        const seaweedPositions = [
+            [-18, -12], [-12, -15], [15, -12], [22, -2],
+            [-22, 5], [-5, 18], [8, 15], [20, 12]
+        ];
+        seaweedPositions.forEach(pos => createSeaweed(pos[0], pos[1]));
+
+        // --- 7. 自然上浮的透明泡泡系统 ---
+        const bubbleGeo = new THREE.SphereGeometry(1, 16, 16);
+        const naturalBubbles = [];
+
+        function createNaturalBubble() {
+            const bubble = new THREE.Mesh(bubbleGeo, materials.bubble);
+            const scale = 0.2 + Math.random() * 0.6;
+            bubble.scale.set(scale, scale, scale);
+            bubble.position.set(
+                (Math.random() - 0.5) * 50,
+                -12,
+                (Math.random() - 0.5) * 30
+            );
+            scene.add(bubble);
+
+            naturalBubbles.push({
+                mesh: bubble,
+                speedY: 0.05 + Math.random() * 0.05,
+                swingSpeed: 2 + Math.random() * 2,
+                swingOffset: Math.random() * Math.PI * 2
+            });
+        }
+
+        // 初始放置 35 个随机分布的自然泡泡
+        for (let i = 0; i < 35; i++) {
+            createNaturalBubble();
+            // 错开初始高度
+            naturalBubbles[i].mesh.position.y = -12 + Math.random() * 30;
+        }
+
+        // --- 8. 交互逻辑：点击产生彩色彩虹泡泡 ---
+        const interactiveBubbles = [];
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            // 防止点击按钮触发水面泡泡
+            if (event.target.tagName === 'BUTTON') return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // 发射一串多彩泡泡
+            const spawnPos = new THREE.Vector3();
+            raycaster.ray.at(25, spawnPos); // 在镜头前方 25 单位生成
+
+            const burstCount = 12;
+            for (let i = 0; i < burstCount; i++) {
+                // 彩虹高亮泡泡材质
+                const burstMat = materials.bubble.clone();
+                burstMat.color = new THREE.Color().setHSL(Math.random(), 0.9, 0.7);
+
+                const bubble = new THREE.Mesh(bubbleGeo, burstMat);
+                const size = 0.2 + Math.random() * 0.5;
+                bubble.scale.set(size, size, size);
+                bubble.position.copy(spawnPos);
+
+                scene.add(bubble);
+
+                interactiveBubbles.push({
+                    mesh: bubble,
+                    vx: (Math.random() - 0.5) * 0.15,
+                    vy: 0.08 + Math.random() * 0.12,
+                    vz: (Math.random() - 0.5) * 0.15,
+                    opacity: 1,
+                    life: 1.0 // 生命周期衰减
+                });
+            }
+        });
+
+        // --- 9. 白天/夜晚模式切换逻辑 ---
+        function setDayMode() {
+            scene.background.set(themeColors.day.bg);
+            scene.fog.color.set(themeColors.day.fog);
+            ambientLight.color.set(themeColors.day.ambient);
+            ambientLight.intensity = themeColors.day.ambientInt;
+            dirLight.color.set(themeColors.day.dirLight);
+            dirLight.intensity = themeColors.day.dirInt;
+        }
+
+        function setNightMode() {
+            scene.background.set(themeColors.night.bg);
+            scene.fog.color.set(themeColors.night.fog);
+            ambientLight.color.set(themeColors.night.ambient);
+            ambientLight.intensity = themeColors.night.ambientInt;
+            dirLight.color.set(themeColors.night.dirLight);
+            dirLight.intensity = themeColors.night.dirInt;
+        }
+
+        // --- 10. 核心主渲染与动画循环 ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // 1. 小鱼游动动画（沿着椭圆轨道游动 + 甩尾巴）
+            fishes.forEach(f => {
+                f.angle += f.speed * 0.01;
+                const nextX = Math.cos(f.angle) * f.radiusX;
+                const nextZ = Math.sin(f.angle) * f.radiusZ;
+                const currentY = f.yOffset + Math.sin(elapsedTime * 2 + f.angle) * 0.8;
+
+                // 计算小鱼车头朝向
+                const targetPos = new THREE.Vector3(nextX, currentY, nextZ);
+                f.mesh.lookAt(targetPos);
+                f.mesh.position.copy(targetPos);
+
+                // 左右摆尾动作
+                if (f.mesh.tail) {
+                    f.mesh.tail.rotation.y = Math.sin(elapsedTime * f.wiggleSpeed) * 0.4;
+                }
+            });
+
+            // 2. 海草柔软扭曲摆动
+            seaweeds.forEach(s => {
+                const pos = s.initialGeo.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const y = pos.getY(i);
+                    // 越往顶部（y值越大）摆动幅度越大
+                    if (y > 0) {
+                        const wave = Math.sin(elapsedTime * s.speed + s.phase + y * 0.5) * (y * 0.15);
+                        pos.setX(i, wave);
+                    }
+                }
+                s.initialGeo.attributes.position.needsUpdate = true;
+            });
+
+            // 3. 自然上升泡泡
+            naturalBubbles.forEach(b => {
+                b.mesh.position.y += b.speedY;
+                b.mesh.position.x += Math.sin(elapsedTime * b.swingSpeed + b.swingOffset) * 0.02;
+
+                // 超出水面后重新回到海底
+                if (b.mesh.position.y > 20) {
+                    b.mesh.position.y = -12;
+                    b.mesh.position.x = (Math.random() - 0.5) * 50;
+                }
+            });
+
+            // 4. 点击生成的互动扩散泡泡更新
+            for (let i = interactiveBubbles.length - 1; i >= 0; i--) {
+                const ib = interactiveBubbles[i];
+                ib.mesh.position.x += ib.vx;
+                ib.mesh.position.y += ib.vy;
+                ib.mesh.position.z += ib.vz;
+                ib.life -= 0.008;
+
+                if (ib.life <= 0) {
+                    scene.remove(ib.mesh);
+                    ib.mesh.geometry.dispose();
+                    ib.mesh.material.dispose();
+                    interactiveBubbles.splice(i, 1);
+                } else {
+                    ib.mesh.material.opacity = ib.life * 0.7;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 启动动画循环
+        animate();
+
+        // --- 11. 窗口分辨率自适应 ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

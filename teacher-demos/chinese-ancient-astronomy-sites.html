@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国十大古天文遗址与观象圣地 - 3D互动天文探索馆</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "FangSong", sans-serif;
+            background: #080b12;
+            color: #f6eee2;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 14px;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* 顶部导航与时间轴切换栏 */
+        header {
+            background: rgba(35, 30, 26, 0.94);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(214, 197, 174, 0.35);
+            border-radius: 18px;
+            padding: 10px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.75);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title h1 {
+            font-size: 18px;
+            color: #ffd6a2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+        .header-title h1 span {
+            font-size: 12.5px;
+            color: #eedfc7;
+            font-weight: normal;
+        }
+        .timeline-badge {
+            background: #9e2a2b;
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .site-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            background: rgba(20, 20, 25, 0.7);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid #594a3e;
+        }
+        .site-btn {
+            background: transparent;
+            border: none;
+            color: #eedfc7;
+            padding: 6px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: bold;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .site-btn.active, .site-btn:hover {
+            background: #9e2a2b;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(158, 42, 43, 0.5);
+        }
+
+        /* 右上角遗址精细解密卡片 */
+        .info-card {
+            position: absolute;
+            right: 16px;
+            top: 115px;
+            width: 350px;
+            background: rgba(35, 30, 26, 0.95);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(214, 197, 174, 0.4);
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.75);
+            transition: all 0.3s ease;
+        }
+        .info-card h3 {
+            color: #ffda83;
+            font-size: 16px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .info-card .tag {
+            background: #9e2a2b;
+            color: #ffffff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .coord-txt {
+            font-size: 11px;
+            color: #d6c5ae;
+            margin-bottom: 8px;
+        }
+        .structure-highlights {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.28);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #594a3e;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+        .structure-highlights div span {
+            color: #d6c5ae;
+            display: block;
+        }
+        .structure-highlights div b {
+            color: #ffd6a2;
+        }
+        .info-card p {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #f6eee2;
+            margin-bottom: 8px;
+        }
+        .magic-box {
+            background: rgba(214, 197, 174, 0.12);
+            border-left: 4px solid #ffd6a2;
+            padding: 6px 10px;
+            border-radius: 0 8px 8px 0;
+            font-size: 11px;
+            color: #ffecd1;
+            line-height: 1.5;
+        }
+
+        /* 底部控制台 */
+        .control-deck {
+            background: rgba(43, 38, 34, 0.94);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(214, 197, 174, 0.35);
+            border-radius: 18px;
+            padding: 12px 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.75);
+            max-width: 980px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+        .view-group {
+            display: flex;
+            gap: 6px;
+        }
+        .view-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #594a3e;
+            color: #eedfc7;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11.5px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .view-btn.active, .view-btn:hover {
+            background: #9e2a2b;
+            color: #ffffff;
+            border-color: #ffd6a2;
+        }
+        .phenomenon-btn {
+            background: #d5ae49;
+            color: #2b2622;
+            font-weight: bold;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+            transition: all 0.2s;
+        }
+        .phenomenon-btn:hover {
+            background: #fad165;
+            transform: scale(1.03);
+        }
+
+        /* 互动滑块 */
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: #d6c5ae;
+        }
+        .slider-label span b {
+            color: #ffd6a2;
+            font-size: 12.5px;
+        }
+        .timeline-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #4a86e8 0%, #68dfa9 33%, #ffad46 66%, #eaa041 100%);
+            outline: none;
+            cursor: pointer;
+        }
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #9e2a2b;
+            box-shadow: 0 0 10px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .timeline-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        /* 探索指南按钮 */
+        .guide-btn {
+            position: absolute;
+            right: 16px;
+            bottom: 16px;
+            background: #285bac;
+            color: white;
+            border: 2px solid #6d9eeb;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(40, 91, 172, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.25s;
+        }
+        .guide-btn:hover {
+            background: #3c78d8;
+            transform: scale(1.05);
+        }
+
+        /* 弹窗指南 */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 680px;
+            max-width: 92vw;
+            background: #2b2622;
+            border: 3px solid #d6c5ae;
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+            z-index: 100;
+            display: none;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal h2 {
+            color: #ffd6a2;
+            font-size: 19px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-body {
+            font-size: 13px;
+            line-height: 1.65;
+            color: #f6eee2;
+            max-height: 440px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .modal-body h4 {
+            color: #ffda83;
+            margin: 12px 0 4px 0;
+            font-size: 14.5px;
+        }
+        .modal-body h4:first-child {
+            margin-top: 0;
+        }
+        .modal-close {
+            margin-top: 16px;
+            width: 100%;
+            background: #9e2a2b;
+            color: #fff;
+            border: none;
+            padding: 9px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .modal-close:hover {
+            background: #b63a3b;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translate(-50%, -46%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @media (max-width: 960px) {
+            .site-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .info-card {
+                width: calc(100% - 32px);
+                top: auto;
+                bottom: 180px;
+                right: 16px;
+            }
+            .guide-btn, .header-title h1 span {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="ui-layer">
+        <!-- 头部 -->
+        <header class="interactive">
+            <div class="header-top">
+                <div class="header-title">
+                    <h1>🔭 中华十大古天文遗址 <span>• 距今最早至近时间轴全景复原</span></h1>
+                </div>
+                <div class="timeline-badge" id="time-badge">跨越5500年文明历程</div>
+            </div>
+            <div class="site-selector">
+                <button class="site-btn active" data-site="niuheliang">1. 辽宁牛河梁 (5500年前)</button>
+                <button class="site-btn" data-site="yaoshan">2. 浙江良渚瑶山 (5300年前)</button>
+                <button class="site-btn" data-site="lingyanghe">3. 山东陵阳河 (4800年前)</button>
+                <button class="site-btn" data-site="taosi">4. 山西陶寺观象台 (4300年前)</button>
+                <button class="site-btn" data-site="shimao">5. 陕西石峁皇城台 (4300年前)</button>
+                <button class="site-btn" data-site="erlitou">6. 河南二里头夏都 (3800年前)</button>
+                <button class="site-btn" data-site="jinsha">7. 四川金沙/三星堆 (3200年前)</button>
+                <button class="site-btn" data-site="dengfeng">8. 河南登封观星台 (740年前)</button>
+                <button class="site-btn" data-site="beijing">9. 北京古观象台 (580年前)</button>
+                <button class="site-btn" data-site="tropic">10. 北回归线立竿无影 (现代)</button>
+            </div>
+        </header>
+
+        <!-- 右上角解密卡片 -->
+        <div class="info-card interactive" id="info-card">
+            <h3 id="card-title">辽宁牛河梁遗址 <span class="tag" id="card-tag">三重圆坛 • 比例√2</span></h3>
+            <div class="coord-txt" id="card-coord">坐标：41°20′ N, 119°30′ E • 距今约 5500~5000 年</div>
+            <div class="structure-highlights" id="card-highlights">
+                <div><span>核心建筑结构</span><b id="high-struct">三重同心安山岩石坛</b></div>
+                <div><span>天文对齐目标</span><b id="high-target">对准猪首山二至日出</b></div>
+            </div>
+            <p id="card-desc">第二地点三重圆坛直径分别为11m、15.6m、22m，严格呈现√2几何比例。祭坛主轴正对东南猪首山，冬至/夏至阳光精准贯穿！</p>
+            <div class="magic-box" id="card-magic">
+                💡 <b>天文与数学奇迹</b>：5000多年前先民用勾股定理画圆放样，是北京天坛“天圆地方、三层起坛”的真正鼻祖！
+            </div>
+        </div>
+
+        <!-- 底部控制台 -->
+        <div class="control-deck interactive">
+            <div class="controls-row">
+                <div class="view-group">
+                    <button class="view-btn active" id="btn-view-orbit">🦅 3D 鸟瞰全景</button>
+                    <button class="view-btn" id="btn-view-first">👁️ 观测对齐视线</button>
+                    <button class="view-btn" id="btn-view-detail">🔍 核心奇观特写</button>
+                </div>
+                <button class="phenomenon-btn" id="trigger-btn">✨ 一键触发天象奇观</button>
+            </div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>当前时间/季节：<b id="slider-term-txt">夏至清晨 (太阳对齐)</b></span>
+                    <span>太阳高度角：<b id="slider-alt-txt">7.0°</b></span>
+                    <span>对齐状态：<b id="slider-align-txt">🔥 完美锁定主轴贯穿！</b></span>
+                </div>
+                <input type="range" min="0" max="100" value="50" class="timeline-slider" id="time-slider">
+            </div>
+        </div>
+
+        <!-- 探索指南 -->
+        <button class="guide-btn interactive" id="guide-btn">📖 给小朋友的十大奇观指南</button>
+    </div>
+
+    <!-- 弹窗指南 -->
+    <div class="modal interactive" id="guide-modal">
+        <h2>🔍 中华十大古天文遗址深度图解指南 (按距今年代排序)</h2>
+        <div class="modal-body">
+            <h4>1. 🪨 辽宁牛河梁遗址 (距今约 5500~5000 年)</h4>
+            <p>• <b>红山文明</b>：三重同心圆坛直径呈 1:√2:2 比例，正对猪首山，锁定夏至日出与冬至日落，天坛建筑形制的源头。</p>
+
+            <h4>2. 🌿 浙江良渚瑶山祭坛 (距今约 5300 年)</h4>
+            <p>• <b>环太湖古国</b>：山丘顶回字形红土方坛，四角正对东南西北；眺望大遮山诸峰鞍部锁定二分二至日出，指导稻作农时。</p>
+
+            <h4>3. 🌄 山东莒县陵阳河遗址 (距今约 4800 年)</h4>
+            <p>• <b>大汶口文化</b>：大口尊上刻有“☀️+☁️+⛰️（旦）”字；春分清晨太阳正好从正东方寺崮山双峰鞍部升起，最早的日出写生！</p>
+
+            <h4>4. 🏛️ 山西陶寺古观象台 (距今约 4300~3900 年)</h4>
+            <p>• <b>尧都平阳</b>：13根夯土柱形成12道狭缝，通过柱缝观测东方塔尔山日出，精准划分20个节令，实证“历象日月星辰，敬授人时”。</p>
+
+            <h4>5. 🏰 陕西神木石峁遗址 (距今约 4300~3800 年)</h4>
+            <p>• <b>北方石城</b>：巍峨皇城台与外城东门主通道偏向东南，迎向冬至清晨日出金光；“藏玉于墙”祈求天地光明。</p>
+
+            <h4>6. 🏛️ 河南洛阳二里头遗址 (距今约 3800~3500 年)</h4>
+            <p>• <b>夏都中轴</b>：1号、2号宫殿严格按古代真子午线（南偏西2°~5°）布局，开创王者面朝正南、以正午圭表测影定天下的规制。</p>
+
+            <h4>7. 🐦 四川成都金沙/三星堆 (距今约 3200~3000 年)</h4>
+            <p>• <b>古蜀文明</b>：“太阳神鸟”金箔内层12道光芒（十二月）、外层4只神鸟（四季）；青铜神树与太阳轮体现十日崇拜。</p>
+
+            <h4>8. 🔭 河南登封观星台 (始于西周，元代1276年郭守敬建)</h4>
+            <p>• <b>天地之中</b>：40尺高表横梁与31.19米长石圭（量天尺），配以发明“景符”小孔成像，将测影精度缩至2mm以内，编出《授时历》。</p>
+
+            <h4>9. 🔭 北京古观象台 (始建于公元1442年，距今580年)</h4>
+            <p>• <b>明清皇家巅峰</b>：14米城台陈列清代八架大型精美铸铜天文仪器，融合中西刻度体系，连续观天近500年。</p>
+
+            <h4>10. 🌐 北回归线标志带 (现代天文标志体系)</h4>
+            <p>• <b>夏至立竿无影</b>：夏至正午太阳直射天顶（90°），阳光垂直穿透标志塔圆管直击地面铜心，热带与温带的天然分界线！</p>
+        </div>
+        <button class="modal-close" id="modal-close-btn">太震撼了！去探索</button>
+    </div>
+
+    <!-- 引入 Three.js -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        const SITES_CONFIG = {
+            niuheliang: {
+                title: "1. 辽宁牛河梁遗址",
+                tag: "距今 5500~5000 年 • 三重圆坛",
+                coord: "坐标：41°20′ N, 119°30′ E • 红山文化晚期",
+                struct: "三重同心安山岩石坛(11m/15.6m/22m)",
+                target: "对准猪首山二至日出日落",
+                desc: "第二地点三重圆坛直径分别为11m、15.6m、22m，严格呈现√2几何比例。祭坛主轴正对东南猪首山，夏至日出光束贯通！",
+                magic: "💡 <b>几何奇迹</b>：5000多年前先民用勾股定理画圆放样，是北京天坛“天圆地方、三层起坛”的真正鼻祖！",
+                sunAzimuth: 52.0,
+                sunAltitude: 7.0,
+                sliderLabel: "夏至清晨 (猪首山日出对齐)"
+            },
+            yaoshan: {
+                title: "2. 浙江良渚瑶山祭坛",
+                tag: "距今 5300 年 • 红土方坛",
+                coord: "坐标：30°23′ N, 119°59′ E • 良渚文化早期",
+                struct: "山顶回字形红土台+12座贵族大墓",
+                target: "对准大遮山峰峦测定二分二至",
+                desc: "建在独立山丘顶的回字形红土祭坛，四角正对东南西北；眺望大遮山诸峰鞍部锁定二分二至日出，指导稻作农时！",
+                magic: "💡 <b>水乡观天圣地</b>：祭坛上埋葬随葬玉琮玉璧的巫觋，借掌握太阳运行规律来统领古国水利与农业！",
+                sunAzimuth: 60.0,
+                sunAltitude: 6.8,
+                sliderLabel: "夏至清晨 (大遮山峰峦日出)"
+            },
+            lingyanghe: {
+                title: "3. 山东莒县陵阳河遗址",
+                tag: "距今 4800 年 • 旦字陶文",
+                coord: "坐标：35°33′ N, 118°50′ E • 大汶口文化晚期",
+                struct: "祭祀台基+大口尊+寺崮山双峰",
+                target: "春分/秋分正东寺崮山鞍部日出",
+                desc: "每年春分清晨，站在遗址向东看，太阳正好从寺崮山五峰中间升起，山腰云气缭绕，与大口尊上的“☀️+☁️+⛰️（旦）”完全重合！",
+                magic: "💡 <b>最古老的日出写生</b>：大汶口先民将这场春分日出刻在陶尊上，造出了中国最早的象形文字“旦”字！",
+                sunAzimuth: 90.0,
+                sunAltitude: 6.5,
+                sliderLabel: "春分清晨 (寺崮山正东日出)"
+            },
+            taosi: {
+                title: "4. 山西襄汾陶寺古观象台",
+                tag: "距今 4300~3900 年 • 13柱12缝",
+                coord: "坐标：35°53′ N, 111°30′ E • 尧都平阳",
+                struct: "半圆形夯土台+13根夯土柱+观测点",
+                target: "贯通缝隙观测塔尔山定20节令",
+                desc: "13根夯土柱形成12道狭缝。冬至阳光穿透2号缝，夏至穿透12号缝，春秋分穿透7号缝，形成最早的20节令太阳历！",
+                magic: "💡 <b>最早的中国观象台</b>：世界已知最早的观象台，实证了《尚书·尧典》所载“历象日月星辰，敬授人时”！",
+                sunAzimuth: 118.0,
+                sunAltitude: 8.0,
+                sliderLabel: "冬至清晨 (2号缝光束直击圆心)"
+            },
+            shimao: {
+                title: "5. 陕西神木石峁遗址",
+                tag: "距今 4300~3800 年 • 皇城台",
+                coord: "坐标：38°48′ N, 110°20′ E • 龙山时代晚期",
+                struct: "数十米高石砌台基+东门主通道",
+                target: "冬至清晨日出斜向贯穿东门",
+                desc: "巍峨的石砌皇城台主通道偏向东南，迎向冬至清晨第一缕阳光；护墙石缝中嵌有精美牙璋玉器与神面石雕！",
+                magic: "💡 <b>石城神光</b>：冬至清晨阳光照射在墙体内嵌的白玉与石雕上，展现了北方石城至高无上的王权礼仪！",
+                sunAzimuth: 122.0,
+                sunAltitude: 6.0,
+                sliderLabel: "冬至清晨 (东门主轴贯通)"
+            },
+            erlitou: {
+                title: "6. 河南洛阳二里头遗址",
+                tag: "距今 3800~3500 年 • 夏都中轴",
+                coord: "坐标：34°42′ N, 112°41′ E • 夏代中晚期都邑",
+                struct: "1/2号宫殿中轴+绿松石龙+圭表",
+                target: "依真子午线面朝正南正午测影",
+                desc: "夏代都城宫殿严格依真子午线（南偏西约2°~5°）布局，开创中原王朝王者居中、面朝正南以正午圭表测影定农时的制度！",
+                magic: "💡 <b>最早的中国规制</b>：出土2300片绿松石巨龙与早期测影工具，确立了以正午影长辨方正位的国家礼制！",
+                sunAzimuth: 180.0,
+                sunAltitude: 78.0,
+                sliderLabel: "夏至正午 (正南中天测影)"
+            },
+            jinsha: {
+                title: "7. 四川金沙/三星堆遗址",
+                tag: "距今 3200~3000 年 • 太阳神鸟",
+                coord: "坐标：30°41′ N, 104°01′ E • 古蜀青铜文明",
+                struct: "太阳神鸟金饰+青铜太阳轮+神树",
+                target: "四鸟绕日象征四季十二月",
+                desc: "0.02cm厚的太阳神鸟金饰内层12道旋转光芒（十二月）、外层4只神鸟（四季）；青铜神树与太阳轮展现古蜀十日崇拜！",
+                magic: "💡 <b>古蜀宇宙观</b>：祭祀区建筑沿西北—东南展开，完美契合夏至日落与冬至日出的神圣天象视线！",
+                sunAzimuth: 125.0,
+                sunAltitude: 7.5,
+                sliderLabel: "冬至清晨 (金沙祭坛迎日)"
+            },
+            dengfeng: {
+                title: "8. 河南登封观星台",
+                tag: "距今 740 年 (1276年) • 郭守敬高表",
+                coord: "坐标：34°24′ N, 113°08′ E • 郭守敬编授时历",
+                struct: "40尺高表+31.19m量天尺+景符",
+                target: "正午测高表影长定365.2425日",
+                desc: "覆斗形高台顶部架设40尺横梁，利用长圭与小孔成像“景符”，把测影精度提高至2毫米内，测定回归年与公历一秒不差！",
+                magic: "💡 <b>圭表巅峰</b>：郭守敬据此编出《授时历》，比欧洲格里历早300年！冬至影长最长达20.1米，夏至最短仅4.6米！",
+                sunAzimuth: 180.0,
+                sunAltitude: 32.2,
+                sliderLabel: "冬至正午 (高表影长20.1米)"
+            },
+            beijing: {
+                title: "9. 北京古观象台",
+                tag: "距今 580 年 (1442年) • 八架铜仪",
+                coord: "坐标：39°54′ N, 116°26′ E • 始建于明正统七年",
+                struct: "14米砖砌城台+八架大型铸铜仪器",
+                target: "精确测量二十八宿恒星与行星",
+                desc: "14米高台顶陈列清代八架大型精美铸铜天文仪器（黄道/赤道经纬仪等），庭院设有明代圭表简仪，连续观天近500年！",
+                magic: "💡 <b>明清皇家巅峰</b>：中西天文学大融合，雕龙盘柱结合360°精密刻度，代表工业革命前天文仪器的世界最高水准！",
+                sunAzimuth: 180.0,
+                sunAltitude: 50.0,
+                sliderLabel: "正午测天 (仪器对齐恒星与太阳)"
+            },
+            tropic: {
+                title: "10. 北回归线标志带 (粤桂滇台)",
+                tag: "现代天文地理标志 • 23°26′N",
+                coord: "坐标：北纬 23°26′21″ 穿过地带 • 热带温带分界",
+                struct: "中空接光标志塔+地面铜心圆靶",
+                target: "夏至正午太阳直射90.0°天顶",
+                desc: "每年夏至日正午（太阳高度角达绝对90°），直射光线穿透塔顶圆管直击地面铜心，人在阳光下完全没有影子！",
+                magic: "💡 <b>天然地理分界</b>：北回归线以北影子终年朝北；越过北回归线往南，夏至后正午影子将转而投向南方！",
+                sunAzimuth: 180.0,
+                sunAltitude: 90.0,
+                sliderLabel: "夏至正午 (太阳直射天顶90°)"
+            }
+        };
+
+        let currentSite = "niuheliang";
+        let scene, camera, renderer, controls;
+        let activeModelGroup;
+        let sunMesh, sunLight, sunGlow, lightBeam, beamParticles;
+
+        const container = document.getElementById('webgl-container');
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0e131d);
+            scene.fog = new THREE.FogExp2(0x161d28, 0.007);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 16, -28);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02;
+            controls.minDistance = 2;
+            controls.maxDistance = 160;
+            controls.target.set(0, 3, 0);
+
+            const hemiLight = new THREE.HemisphereLight(0xffecd1, 0x3d3024, 0.7);
+            scene.add(hemiLight);
+
+            const ambientLight = new THREE.AmbientLight(0xd6c5ae, 0.4);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xfff0cc, 2.4);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 10;
+            sunLight.shadow.camera.far = 240;
+            sunLight.shadow.camera.left = -32;
+            sunLight.shadow.camera.right = 32;
+            sunLight.shadow.camera.top = 32;
+            sunLight.shadow.camera.bottom = -32;
+            sunLight.shadow.bias = -0.0003;
+            scene.add(sunLight);
+
+            activeModelGroup = new THREE.Group();
+            scene.add(activeModelGroup);
+
+            createSunAndBeam();
+            loadSiteModel("niuheliang");
+
+            window.addEventListener('resize', onWindowResize);
+            setupEventListeners();
+        }
+
+        function createSunAndBeam() {
+            const sunGeo = new THREE.SphereGeometry(3.2, 32, 32);
+            const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff4cc });
+            sunMesh = new THREE.Mesh(sunGeo, sunMat);
+            scene.add(sunMesh);
+
+            const glowCanvas = document.createElement('canvas');
+            glowCanvas.width = 128;
+            glowCanvas.height = 128;
+            const gCtx = glowCanvas.getContext('2d');
+            const grad = gCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            grad.addColorStop(0, 'rgba(255, 235, 150, 1)');
+            grad.addColorStop(0.3, 'rgba(255, 175, 70, 0.6)');
+            grad.addColorStop(1, 'rgba(255, 110, 30, 0)');
+            gCtx.fillStyle = grad;
+            gCtx.fillRect(0, 0, 128, 128);
+
+            const glowTex = new THREE.CanvasTexture(glowCanvas);
+            const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending });
+            sunGlow = new THREE.Sprite(glowMat);
+            sunGlow.scale.set(26, 26, 1);
+            scene.add(sunGlow);
+
+            const beamGeo = new THREE.CylinderGeometry(0.22, 0.05, 1, 16, 1, true);
+            const beamMat = new THREE.MeshBasicMaterial({
+                color: 0xffe899,
+                transparent: true,
+                opacity: 0.55,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide
+            });
+            lightBeam = new THREE.Mesh(beamGeo, beamMat);
+            scene.add(lightBeam);
+
+            const particleCount = 120;
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = new Float32Array(particleCount * 3);
+            for (let i = 0; i < particleCount * 3; i++) {
+                pPos[i] = (Math.random() - 0.5) * 10;
+            }
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            const pMat = new THREE.PointsMaterial({
+                color: 0xfff0b3,
+                size: 0.14,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            beamParticles = new THREE.Points(pGeo, pMat);
+            scene.add(beamParticles);
+        }
+
+        function loadSiteModel(siteKey) {
+            currentSite = siteKey;
+            while (activeModelGroup.children.length > 0) {
+                activeModelGroup.remove(activeModelGroup.children[0]);
+            }
+
+            const data = SITES_CONFIG[siteKey];
+            document.getElementById('card-title').innerHTML = `${data.title} <span class="tag">${data.tag}</span>`;
+            document.getElementById('card-coord').innerText = data.coord;
+            document.getElementById('high-struct').innerText = data.struct;
+            document.getElementById('high-target').innerText = data.target;
+            document.getElementById('card-desc').innerHTML = data.desc;
+            document.getElementById('card-magic').innerHTML = data.magic;
+            document.getElementById('slider-term-txt').innerText = data.sliderLabel;
+
+            if (siteKey === "niuheliang") buildNiuheliangModel();
+            else if (siteKey === "yaoshan") buildYaoshanModel();
+            else if (siteKey === "lingyanghe") buildLingyangheModel();
+            else if (siteKey === "taosi") buildTaosiModel();
+            else if (siteKey === "shimao") buildShimaoModel();
+            else if (siteKey === "erlitou") buildErlitouModel();
+            else if (siteKey === "jinsha") buildJinshaModel();
+            else if (siteKey === "dengfeng") buildDengfengModel();
+            else if (siteKey === "beijing") buildBeijingModel();
+            else if (siteKey === "tropic") buildTropicModel();
+
+            updateSunForSite(50);
+        }
+
+        // 1. 牛河梁
+        function buildNiuheliangModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x4e5e3a, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9e4334, roughness: 0.85 });
+            const radii = [11.0, 7.8, 5.5];
+            const heights = [0.4, 0.9, 1.4];
+            radii.forEach((r, idx) => {
+                const count = idx === 0 ? 36 : idx === 1 ? 26 : 18;
+                for (let i = 0; i < count; i++) {
+                    const ang = (i / count) * Math.PI * 2;
+                    const x = r * Math.cos(ang);
+                    const z = r * Math.sin(ang);
+                    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, heights[idx] + 0.4, 8), stoneMat);
+                    p.position.set(x, (heights[idx] + 0.4) / 2, z);
+                    p.castShadow = true;
+                    activeModelGroup.add(p);
+                }
+            });
+
+            const mtn = new THREE.Mesh(new THREE.ConeGeometry(20, 14, 16), new THREE.MeshStandardMaterial({ color: 0x4d4233, roughness: 0.95 }));
+            mtn.position.set(50 * Math.cos(0.9), 7, 50 * Math.sin(0.9));
+            mtn.castShadow = true;
+            activeModelGroup.add(mtn);
+        }
+
+        // 2. 良渚瑶山
+        function buildYaoshanModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x3b522b, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const outerTrench = new THREE.Mesh(new THREE.BoxGeometry(18, 0.4, 18), new THREE.MeshStandardMaterial({ color: 0x6e7370 }));
+            outerTrench.position.set(0, 0.2, 0);
+            outerTrench.receiveShadow = true;
+            activeModelGroup.add(outerTrench);
+
+            const redAltar = new THREE.Mesh(new THREE.BoxGeometry(12, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0xa8412a, roughness: 0.7 }));
+            redAltar.position.set(0, 0.6, 0);
+            redAltar.castShadow = true;
+            activeModelGroup.add(redAltar);
+
+            for (let i = 0; i < 6; i++) {
+                const m1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.6), new THREE.MeshStandardMaterial({ color: 0xd4c2a5 }));
+                m1.position.set(-3.5 + i * 1.4, 1.05, -2);
+                activeModelGroup.add(m1);
+
+                const m2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.6), new THREE.MeshStandardMaterial({ color: 0xd4c2a5 }));
+                m2.position.set(-3.5 + i * 1.4, 1.05, 2);
+                activeModelGroup.add(m2);
+            }
+
+            const mtn = new THREE.Mesh(new THREE.ConeGeometry(24, 16, 16), new THREE.MeshStandardMaterial({ color: 0x364a2c }));
+            mtn.position.set(50 * Math.cos(1.0), 8, 50 * Math.sin(1.0));
+            activeModelGroup.add(mtn);
+        }
+
+        // 3. 陵阳河
+        function buildLingyangheModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x6e5f49, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const altar = new THREE.Mesh(new THREE.CylinderGeometry(4.0, 4.5, 1.2, 16), new THREE.MeshStandardMaterial({ color: 0x8a7052 }));
+            altar.position.set(0, 0.6, 0);
+            altar.receiveShadow = true;
+            activeModelGroup.add(altar);
+
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.3, 1.6, 16), new THREE.MeshStandardMaterial({ color: 0xb56338, roughness: 0.6 }));
+            pot.position.set(0, 2.0, 0);
+            pot.castShadow = true;
+            activeModelGroup.add(pot);
+
+            const mtnMat = new THREE.MeshStandardMaterial({ color: 0x4a4339, roughness: 0.95 });
+            const peak1 = new THREE.Mesh(new THREE.ConeGeometry(14, 15, 16), mtnMat);
+            peak1.position.set(55, 7.5, -9);
+            peak1.castShadow = true;
+            activeModelGroup.add(peak1);
+
+            const peak2 = new THREE.Mesh(new THREE.ConeGeometry(14, 15, 16), mtnMat);
+            peak2.position.set(55, 7.5, 9);
+            peak2.castShadow = true;
+            activeModelGroup.add(peak2);
+        }
+
+        // 4. 陶寺古观象台
+        function buildTaosiModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x8a7258, roughness: 0.95 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const platform = new THREE.Mesh(new THREE.CylinderGeometry(14, 14.6, 0.6, 36, 1, false, -Math.PI/2, Math.PI), new THREE.MeshStandardMaterial({ color: 0xa88b6e }));
+            platform.position.set(0, 0.3, 0);
+            platform.receiveShadow = true;
+            activeModelGroup.add(platform);
+
+            const pMat = new THREE.MeshStandardMaterial({ color: 0xb59878 });
+            const startAng = -Math.PI * 0.32;
+            const endAng = Math.PI * 0.32;
+            for (let i = 0; i < 13; i++) {
+                const ang = startAng + (i / 12) * (endAng - startAng);
+                const px = 10.5 * Math.cos(ang);
+                const pz = 10.5 * Math.sin(ang);
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 4.0, 1.1), (i === 1 || i === 2 ? new THREE.MeshStandardMaterial({ color: 0xdfba88 }) : pMat));
+                pillar.position.set(px, 2.6, pz);
+                pillar.rotation.y = -ang;
+                pillar.castShadow = true;
+                activeModelGroup.add(pillar);
+            }
+
+            const core = new THREE.Mesh(new THREE.CircleGeometry(0.35, 16), new THREE.MeshBasicMaterial({ color: 0x9e2a2b, side: THREE.DoubleSide }));
+            core.rotation.x = -Math.PI / 2;
+            core.position.set(0, 0.62, 0);
+            activeModelGroup.add(core);
+
+            const mtn = new THREE.Mesh(new THREE.ConeGeometry(24, 18, 16), new THREE.MeshStandardMaterial({ color: 0x3d3228 }));
+            mtn.position.set(65, 9, 0);
+            activeModelGroup.add(mtn);
+        }
+
+        // 5. 石峁皇城台
+        function buildShimaoModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x8a7755, roughness: 0.95 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const stoneMat = new THREE.MeshStandardMaterial({ color: 0x7a7161, roughness: 0.9 });
+            for (let i = 0; i < 6; i++) {
+                const size = 30 - i * 3.8;
+                const t = new THREE.Mesh(new THREE.BoxGeometry(size, 2.0, size), stoneMat);
+                t.position.set(0, 1.0 + i * 2.0, 0);
+                t.castShadow = true;
+                t.receiveShadow = true;
+                activeModelGroup.add(t);
+            }
+
+            const ramp = new THREE.Mesh(new THREE.BoxGeometry(4.2, 8.0, 18.0), stoneMat);
+            ramp.position.set(12, 4.0, 12);
+            ramp.rotation.x = -0.4;
+            ramp.rotation.y = -0.6;
+            ramp.castShadow = true;
+            activeModelGroup.add(ramp);
+        }
+
+        // 6. 二里头夏都
+        function buildErlitouModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x7d6849, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const hallMat = new THREE.MeshStandardMaterial({ color: 0x9c784e });
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(16, 1.2, 12), hallMat);
+            p1.position.set(0, 0.6, -6);
+            p1.rotation.y = -0.05;
+            p1.castShadow = true;
+            activeModelGroup.add(p1);
+
+            const p2 = new THREE.Mesh(new THREE.BoxGeometry(12, 1.2, 10), hallMat);
+            p2.position.set(0, 0.6, 8);
+            p2.rotation.y = -0.05;
+            p2.castShadow = true;
+            activeModelGroup.add(p2);
+
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.2, 8), new THREE.MeshStandardMaterial({ color: 0x3d2b1f }));
+            post.position.set(0, 1.6, 0);
+            post.castShadow = true;
+            activeModelGroup.add(post);
+        }
+
+        // 7. 金沙/三星堆
+        function buildJinshaModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x455735, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const disk = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.1, 32), new THREE.MeshStandardMaterial({ color: 0xffd24d, metalness: 0.8, roughness: 0.2 }));
+            disk.position.set(0, 0.6, 0);
+            activeModelGroup.add(disk);
+
+            const treeMat = new THREE.MeshStandardMaterial({ color: 0x488a75, metalness: 0.6, roughness: 0.4 });
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 6.5, 8), treeMat);
+            trunk.position.set(0, 3.5, 0);
+            trunk.castShadow = true;
+            activeModelGroup.add(trunk);
+
+            for (let i = 0; i < 3; i++) {
+                const branch = new THREE.Mesh(new THREE.TorusGeometry(1.2 + i * 0.4, 0.08, 8, 16, Math.PI), treeMat);
+                branch.position.set(0, 2.5 + i * 1.6, 0);
+                branch.rotation.x = Math.PI / 2;
+                activeModelGroup.add(branch);
+            }
+        }
+
+        // 8. 登封观星台 (1276年)
+        function buildDengfengModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x6e685f, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 8.5, 9.46, 4, 1, false, Math.PI/4), new THREE.MeshStandardMaterial({ color: 0x5a544c, roughness: 0.85 }));
+            base.position.set(0, 4.73, 0);
+            base.castShadow = true;
+            activeModelGroup.add(base);
+
+            const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 5.0, 16), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8 }));
+            beam.rotation.z = Math.PI / 2;
+            beam.position.set(0, 12.6, -1.2);
+            beam.castShadow = true;
+            activeModelGroup.add(beam);
+
+            const ruler = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 31.19), new THREE.MeshStandardMaterial({ color: 0x8a9299 }));
+            ruler.position.set(0, 0.175, -3.2 - 15.6);
+            ruler.receiveShadow = true;
+            activeModelGroup.add(ruler);
+        }
+
+        // 9. 北京古观象台 (1442年)
+        function buildBeijingModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x6e685f, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(18, 10, 18), new THREE.MeshStandardMaterial({ color: 0x5a544c, roughness: 0.85 }));
+            platform.position.set(0, 5, 0);
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            activeModelGroup.add(platform);
+
+            const bronzeMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.25 });
+            const inst1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), bronzeMat);
+            inst1.position.set(-4, 11.2, -4);
+            inst1.castShadow = true;
+            activeModelGroup.add(inst1);
+
+            const inst2 = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.15, 8, 24), bronzeMat);
+            inst2.position.set(4, 11.2, -4);
+            inst2.castShadow = true;
+            activeModelGroup.add(inst2);
+
+            const inst3 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 1.5, 16), bronzeMat);
+            inst3.position.set(0, 11.2, 4);
+            inst3.castShadow = true;
+            activeModelGroup.add(inst3);
+        }
+
+        // 10. 北回归线标志带 (现代)
+        function buildTropicModel() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x8a7a58, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            activeModelGroup.add(ground);
+
+            const towerMat = new THREE.MeshStandardMaterial({ color: 0xe6e6ea, metalness: 0.3, roughness: 0.3 });
+            const towerLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.8, 14, 16), towerMat);
+            towerLeft.position.set(-2.5, 7, 0);
+            towerLeft.rotation.z = -0.15;
+            towerLeft.castShadow = true;
+            activeModelGroup.add(towerLeft);
+
+            const towerRight = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.8, 14, 16), towerMat);
+            towerRight.position.set(2.5, 7, 0);
+            towerRight.rotation.z = 0.15;
+            towerRight.castShadow = true;
+            activeModelGroup.add(towerRight);
+
+            const topSphere = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.25, 16, 32), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8 }));
+            topSphere.position.set(0, 13.5, 0);
+            topSphere.rotation.x = Math.PI / 2;
+            topSphere.castShadow = true;
+            activeModelGroup.add(topSphere);
+
+            const target = new THREE.Mesh(new THREE.CircleGeometry(1.0, 32), new THREE.MeshBasicMaterial({ color: 0xffd24d, side: THREE.DoubleSide }));
+            target.rotation.x = -Math.PI / 2;
+            target.position.set(0, 0.02, 0);
+            activeModelGroup.add(target);
+        }
+
+        function updateSunForSite(val) {
+            const data = SITES_CONFIG[currentSite];
+            const t = val / 100;
+
+            const baseAz = data.sunAzimuth * Math.PI / 180;
+            const baseAlt = data.sunAltitude * Math.PI / 180;
+
+            const az = baseAz + (t - 0.5) * 0.4;
+            const alt = Math.max(0.04, baseAlt + (t - 0.5) * 0.3);
+
+            const sunDist = 75;
+            const sunY = sunDist * Math.sin(alt);
+            const sunX = sunDist * Math.cos(alt) * Math.sin(az);
+            const sunZ = sunDist * Math.cos(alt) * Math.cos(az);
+
+            sunMesh.position.set(sunX, sunY, sunZ);
+            sunGlow.position.copy(sunMesh.position);
+
+            sunLight.position.set(sunX, sunY, sunZ);
+            sunLight.target.position.set(0, 2, 0);
+
+            let targetPoint = new THREE.Vector3(0, 1.0, 0);
+            if (currentSite === "tropic") {
+                targetPoint.set(0, 0.05, 0);
+            } else if (currentSite === "dengfeng") {
+                targetPoint.set(0, 0.2, -23.2);
+            } else if (currentSite === "beijing") {
+                targetPoint.set(0, 11.2, 0);
+            } else if (currentSite === "taosi") {
+                targetPoint.set(0, 0.62, 0);
+            }
+
+            const sunPos = new THREE.Vector3(sunX, sunY, sunZ);
+            const beamVector = new THREE.Vector3().subVectors(sunPos, targetPoint);
+            const beamLength = beamVector.length();
+
+            lightBeam.scale.set(1, beamLength, 1);
+            lightBeam.position.copy(targetPoint).add(beamVector.clone().multiplyScalar(0.5));
+            lightBeam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), beamVector.clone().normalize());
+
+            beamParticles.position.copy(lightBeam.position);
+            beamParticles.quaternion.copy(lightBeam.quaternion);
+
+            document.getElementById('slider-alt-txt').innerText = `${(alt * 180 / Math.PI).toFixed(1)}°`;
+            document.getElementById('slider-align-txt').innerText = Math.abs(t - 0.5) < 0.05 ? "🔥 完美锁定主轴贯穿！" : "光线偏离主轴";
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.site-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadSiteModel(btn.dataset.site);
+                });
+            });
+
+            const slider = document.getElementById('time-slider');
+            slider.addEventListener('input', (e) => {
+                updateSunForSite(parseInt(e.target.value));
+            });
+
+            document.getElementById('trigger-btn').addEventListener('click', () => {
+                slider.value = 50;
+                updateSunForSite(50);
+            });
+
+            document.getElementById('btn-view-orbit').addEventListener('click', () => {
+                setViewTab('btn-view-orbit');
+                animateCamera(new THREE.Vector3(0, 16, -28), new THREE.Vector3(0, 2, 0));
+            });
+
+            document.getElementById('btn-view-first').addEventListener('click', () => {
+                setViewTab('btn-view-first');
+                if (currentSite === "niuheliang") {
+                    animateCamera(new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(50 * Math.cos(0.9), 7, 50 * Math.sin(0.9)));
+                } else if (currentSite === "taosi") {
+                    animateCamera(new THREE.Vector3(-0.2, 1.8, 0), new THREE.Vector3(40, 4, 0));
+                } else if (currentSite === "dengfeng") {
+                    animateCamera(new THREE.Vector3(28, 8, -12), new THREE.Vector3(0, 6, -12));
+                } else if (currentSite === "lingyanghe") {
+                    animateCamera(new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(55, 7.5, 0));
+                } else if (currentSite === "tropic") {
+                    animateCamera(new THREE.Vector3(0, 0.5, 4), new THREE.Vector3(0, 14, 0));
+                } else {
+                    animateCamera(new THREE.Vector3(0, 2.0, -12), new THREE.Vector3(0, 2.0, 12));
+                }
+            });
+
+            document.getElementById('btn-view-detail').addEventListener('click', () => {
+                setViewTab('btn-view-detail');
+                if (currentSite === "dengfeng") {
+                    animateCamera(new THREE.Vector3(0, 14, -6), new THREE.Vector3(0, 12.6, -1.2));
+                } else if (currentSite === "taosi") {
+                    animateCamera(new THREE.Vector3(0, 3, -12), new THREE.Vector3(0, 1, 0));
+                } else if (currentSite === "niuheliang") {
+                    animateCamera(new THREE.Vector3(8, 4, 8), new THREE.Vector3(0, 1, 0));
+                } else if (currentSite === "beijing") {
+                    animateCamera(new THREE.Vector3(6, 14, 6), new THREE.Vector3(0, 11, 0));
+                } else if (currentSite === "jinsha") {
+                    animateCamera(new THREE.Vector3(3, 3, 3), new THREE.Vector3(0, 1.5, 0));
+                } else if (currentSite === "tropic") {
+                    animateCamera(new THREE.Vector3(0, 3, 5), new THREE.Vector3(0, 0, 0));
+                } else {
+                    animateCamera(new THREE.Vector3(6, 4, 6), new THREE.Vector3(0, 1, 0));
+                }
+            });
+
+            const guideBtn = document.getElementById('guide-btn');
+            const guideModal = document.getElementById('guide-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            guideBtn.addEventListener('click', () => guideModal.style.display = 'block');
+            modalCloseBtn.addEventListener('click', () => guideModal.style.display = 'none');
+        }
+
+        function setViewTab(activeId) {
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.id === activeId);
+            });
+        }
+
+        function animateCamera(targetPos, targetLookAt) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const duration = 900;
+            const startTime = performance.now();
+
+            function updateCam(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const ease = t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                controls.target.lerpVectors(startTarget, targetLookAt, ease);
+                controls.update();
+
+                if (t < 1) requestAnimationFrame(updateCam);
+            }
+            requestAnimationFrame(updateCam);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (sunGlow) {
+                sunGlow.material.rotation += 0.002;
+            }
+
+            if (beamParticles) {
+                const positions = beamParticles.geometry.attributes.position.array;
+                for (let i = 1; i < positions.length; i += 3) {
+                    positions[i] -= 0.04;
+                    if (positions[i] < -20) positions[i] = 20;
+                }
+                beamParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            if (currentSite === "jinsha" && activeModelGroup.children[1]) {
+                activeModelGroup.children[1].rotation.y += 0.01;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initScene();
+            animate(0);
+        });
+    </script>
+</body>
+</html>
+"""
+
+with open("/working_dir/c_ad7f32662f4b1fdf/china_top10_astronomy_3d.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print(f"Top 10 HTML successfully created, size: {len(html_code)} bytes")
+EOF
+python3 /working_dir/c_ad7f32662f4b1fdf/test_china_top10.py
+}}

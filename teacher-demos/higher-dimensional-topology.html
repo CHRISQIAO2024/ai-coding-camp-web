@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高维折叠 · 拓扑柔性织网</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #00040a;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 悬浮操作台 */
+        .physics-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 20, 30, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-bottom: 2px solid #0ea5e9;
+            padding: 16px 28px;
+            border-radius: 12px;
+            z-index: 10;
+            display: flex;
+            gap: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(14, 165, 233, 0.05);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        button.active {
+            color: #fff;
+            background: rgba(14, 165, 233, 0.2);
+            border-color: #0ea5e9;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+            text-shadow: 0 0 8px #0ea5e9;
+        }
+
+        .hud-status {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(14, 165, 233, 0.7);
+            font-family: monospace;
+            font-size: 13px;
+            pointer-events: none;
+            line-height: 2;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(14, 165, 233, 0.4);
+        }
+
+        .hud-status span { color: #f8fafc; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="hud-status">
+        VERLET_INTEGRATION: <span id="mode-text">引力牵引 (PULL)</span><br>
+        STRUCTURAL_INTEGRITY: <span id="integrity">100%</span><br>
+        [ 撕扯或切断拓扑链路 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+
+    <div class="physics-panel">
+        <button class="active" onclick="setMode('pull', '引力牵引', this)">引力牵引</button>
+        <button onclick="setMode('cut', '降维切割', this)">降维切割</button>
+        <button onclick="initMesh()">矩阵重构</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const modeText = document.getElementById('mode-text');
+        const integrityText = document.getElementById('integrity');
+
+        let width, height;
+        let points = [];
+        let sticks = [];
+        
+        let mouse = { x: -1000, y: -1000, px: -1000, py: -1000, isDown: false };
+        let mode = 'pull'; // pull, cut
+        let draggedPoint = null;
+
+        // 物理常量
+        const GRAVITY = 0.4;
+        const FRICTION = 0.98;
+        const TEAR_DISTANCE = 60; // 超过这个距离约束会断裂
+        
+        // 网格配置
+        const SPACING = 25;
+        let cols, rows;
+        let totalSticks = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initMesh();
+        }
+        window.addEventListener('resize', resize);
+
+        function setMode(newMode, name, btn) {
+            mode = newMode;
+            modeText.innerText = name + ' (' + newMode.toUpperCase() + ')';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // ==========================================
+        // Verlet 物理引擎核心
+        // ==========================================
+
+        class Point {
+            constructor(x, y, pinned = false) {
+                this.x = x;
+                this.y = y;
+                this.px = x; // previous X
+                this.py = y; // previous Y
+                this.pinned = pinned; // 是否固定在空间中
+            }
+
+            update() {
+                if (this.pinned) return;
+
+                // Verlet 积分计算速度 (当前位置 - 上一帧位置)
+                let vx = (this.x - this.px) * FRICTION;
+                let vy = (this.y - this.py) * FRICTION;
+
+                // 记录当前位置作为下一帧的 previous
+                this.px = this.x;
+                this.py = this.y;
+
+                // 应用速度和重力
+                this.x += vx;
+                this.y += vy + GRAVITY;
+
+                // 基础地面边界约束
+                if (this.y > height - 10) {
+                    this.y = height - 10;
+                    this.x -= vx * 0.2; // 触地摩擦
+                }
+            }
+        }
+
+        class Stick {
+            constructor(p1, p2) {
+                this.p1 = p1;
+                this.p2 = p2;
+                let dx = p1.x - p2.x;
+                let dy = p1.y - p2.y;
+                this.length = Math.sqrt(dx * dx + dy * dy);
+                this.active = true;
+            }
+
+            update() {
+                if (!this.active) return;
+
+                let dx = this.p2.x - this.p1.x;
+                let dy = this.p2.y - this.p1.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // 过载断裂逻辑
+                if (dist > TEAR_DISTANCE) {
+                    this.active = false;
+                    return;
+                }
+
+                // 距离约束算法 (保持两点距离恒定)
+                let difference = this.length - dist;
+                let percent = difference / dist / 2;
+                let offsetX = dx * percent;
+                let offsetY = dy * percent;
+
+                if (!this.p1.pinned) {
+                    this.p1.x -= offsetX;
+                    this.p1.y -= offsetY;
+                }
+                if (!this.p2.pinned) {
+                    this.p2.x += offsetX;
+                    this.p2.y += offsetY;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                
+                // 根据线的拉伸程度改变颜色 (越紧绷越红)
+                let dx = this.p2.x - this.p1.x;
+                let dy = this.p2.y - this.p1.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                let stretch = Math.max(0, (dist - this.length) / (TEAR_DISTANCE - this.length));
+                
+                let r = Math.floor(14 + stretch * 240);
+                let g = Math.floor(165 - stretch * 100);
+                let b = Math.floor(233 - stretch * 233);
+                
+                ctx.beginPath();
+                ctx.moveTo(this.p1.x, this.p1.y);
+                ctx.lineTo(this.p2.x, this.p2.y);
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.7)`;
+                ctx.lineWidth = 1 + stretch * 2;
+                ctx.stroke();
+            }
+        }
+
+        function initMesh() {
+            points = [];
+            sticks = [];
+            
+            // 居中计算
+            cols = Math.min(45, Math.floor(width / SPACING));
+            rows = Math.min(25, Math.floor(height * 0.7 / SPACING));
+            
+            let startX = (width - (cols - 1) * SPACING) / 2;
+            let startY = 80;
+
+            // 1. 生成节点
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    // 第一排节点全部钉死
+                    let pinned = (y === 0);
+                    // 增加一点随机扰动，让网格看起来更自然
+                    let rx = startX + x * SPACING + (Math.random() - 0.5) * 2;
+                    let ry = startY + y * SPACING + (Math.random() - 0.5) * 2;
+                    points.push(new Point(rx, ry, pinned));
+                }
+            }
+
+            // 2. 生成弹簧约束 (横向和纵向)
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    let index = y * cols + x;
+                    // 横向连接
+                    if (x < cols - 1) sticks.push(new Stick(points[index], points[index + 1]));
+                    // 纵向连接
+                    if (y < rows - 1) sticks.push(new Stick(points[index], points[index + cols]));
+                }
+            }
+            totalSticks = sticks.length;
+        }
+
+        // 数学辅助：线段相交检测 (用于光剑切割)
+        function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+            let uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+            let uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+            return (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1);
+        }
+
+        function animate() {
+            // 背景清理
+            ctx.fillStyle = 'rgba(0, 4, 10, 1)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.globalCompositeOperation = 'lighter';
+
+            // 交互逻辑
+            if (mouse.isDown) {
+                if (mode === 'pull') {
+                    // 寻找最近的节点并拖拽
+                    if (!draggedPoint) {
+                        let minDist = 30;
+                        for (let p of points) {
+                            let dist = Math.sqrt(Math.pow(mouse.x - p.x, 2) + Math.pow(mouse.y - p.y, 2));
+                            if (dist < minDist) {
+                                minDist = dist;
+                                draggedPoint = p;
+                            }
+                        }
+                    }
+                    if (draggedPoint) {
+                        draggedPoint.x = mouse.x;
+                        draggedPoint.y = mouse.y;
+                        draggedPoint.px = mouse.x; // 防止累积巨大的速度
+                    }
+                } else if (mode === 'cut') {
+                    // 光剑切割轨迹
+                    ctx.beginPath();
+                    ctx.moveTo(mouse.px, mouse.py);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // 检测鼠标划过的轨迹是否切断了链路
+                    for (let s of sticks) {
+                        if (s.active && lineIntersect(mouse.px, mouse.py, mouse.x, mouse.y, s.p1.x, s.p1.y, s.p2.x, s.p2.y)) {
+                            s.active = false;
+                        }
+                    }
+                }
+            }
+
+            // 物理引擎核心循环
+            for (let p of points) p.update();
+            
+            // 为了保证约束的刚性，多迭代几次 (Iteration)
+            for (let i = 0; i < 4; i++) {
+                for (let s of sticks) s.update();
+            }
+
+            // 绘制与状态更新
+            let activeSticks = 0;
+            for (let s of sticks) {
+                s.draw();
+                if (s.active) activeSticks++;
+            }
+
+            // 更新完整度 UI
+            let integrity = Math.floor((activeSticks / totalSticks) * 100);
+            integrityText.innerText = integrity + '%';
+            if (integrity < 30) integrityText.style.color = '#ef4444';
+            else integrityText.style.color = '#f8fafc';
+
+            mouse.px = mouse.x;
+            mouse.py = mouse.y;
+
+            ctx.globalCompositeOperation = 'source-over';
+            requestAnimationFrame(animate);
+        }
+
+        // 事件监听
+        window.addEventListener('mousedown', (e) => {
+            mouse.isDown = true;
+            mouse.x = mouse.px = e.clientX;
+            mouse.y = mouse.py = e.clientY;
+        });
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseup', () => {
+            mouse.isDown = false;
+            draggedPoint = null;
+        });
+
+        // 触控支持
+        window.addEventListener('touchstart', (e) => {
+            mouse.isDown = true;
+            mouse.x = mouse.px = e.touches[0].clientX;
+            mouse.y = mouse.py = e.touches[0].clientY;
+        }, {passive: true});
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+        window.addEventListener('touchend', () => {
+            mouse.isDown = false;
+            draggedPoint = null;
+        });
+
+        // 启动引擎
+        resize();
+        animate();
+    </script>
+</body>
+</html>

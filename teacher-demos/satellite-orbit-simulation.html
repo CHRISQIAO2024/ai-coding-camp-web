@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30,000 颗远地卫星环绕地球 3D 仿真动画</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background-color: #030712;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 航天测控风格 HUD 界面 */
+        .hud-overlay {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 顶部标题与状态栏 */
+        .top-bar {
+            top: 20px;
+            left: 24px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .title-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-left: 4px solid #38bdf8;
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .title-card h1 {
+            font-size: 18px;
+            letter-spacing: 1px;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .title-card h1 .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+            animation: pulse 2s infinite;
+        }
+        .title-card p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .metrics-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 18px;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+        }
+        .metric-item {
+            text-align: right;
+        }
+        .metric-value {
+            font-family: "SF Mono", Consolas, monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+        .metric-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 左侧/底部控制面板 */
+        .controls-panel {
+            bottom: 24px;
+            left: 24px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 10px;
+            padding: 18px;
+            width: 320px;
+            pointer-events: auto;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+        .panel-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 8px #38bdf8;
+        }
+
+        .orbit-toggles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .toggle-btn {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .toggle-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: #38bdf8;
+            color: #f8fafc;
+        }
+        .color-tag {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        .preset-btn {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 6px 0;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        /* 右下角图例 */
+        .legend-card {
+            bottom: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #cbd5e1;
+        }
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+
+    <!-- Three.js 与 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- HUD 头部信息 -->
+    <div class="hud-overlay top-bar">
+        <div class="title-card">
+            <h1><span class="status-dot"></span> 30,000 远地轨道卫星群空间态势系统</h1>
+            <p>基于 GPU 着色器加速的开普勒轨道动力学实时仿真（GEO / MEO / HEO / 深空中继）</p>
+        </div>
+        <div class="metrics-card">
+            <div class="metric-item">
+                <div class="metric-value" id="fps-display">60</div>
+                <div class="metric-label">FPS 帧率</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-value" id="sat-count">30,000</div>
+                <div class="metric-label">在轨卫星数</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-value" id="sim-time">0.0 d</div>
+                <div class="metric-label">仿真历元耗时</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD 左下角交互面板 -->
+    <div class="hud-overlay controls-panel">
+        <div class="panel-header">
+            <span>轨道层控制</span>
+            <span id="speed-indicator">1.0x</span>
+        </div>
+
+        <div class="control-group">
+            <label><span>时间流逝速率</span><span id="speed-val">1.0x</span></label>
+            <input type="range" id="time-speed" min="0" max="10" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-group">
+            <label><span>卫星点阵大小</span><span id="size-val">3.5 px</span></label>
+            <input type="range" id="point-size" min="1.0" max="8.0" step="0.5" value="3.5">
+        </div>
+
+        <div class="orbit-toggles">
+            <button class="toggle-btn active" data-type="geo">
+                <span class="color-tag" style="background:#fbbf24;"></span> GEO (同步: 10k)
+            </button>
+            <button class="toggle-btn active" data-type="meo">
+                <span class="color-tag" style="background:#38bdf8;"></span> MEO (中轨: 12k)
+            </button>
+            <button class="toggle-btn active" data-type="heo">
+                <span class="color-tag" style="background:#4ade80;"></span> HEO (椭圆: 5k)
+            </button>
+            <button class="toggle-btn active" data-type="deep">
+                <span class="color-tag" style="background:#c084fc;"></span> 深空探测 (3k)
+            </button>
+        </div>
+
+        <div class="panel-header" style="margin-top: 14px;">视点预设</div>
+        <div class="preset-buttons">
+            <button class="preset-btn" id="btn-global">全局全景</button>
+            <button class="preset-btn" id="btn-geo">赤道 GEO 环</button>
+            <button class="preset-btn" id="btn-polar">北极俯瞰</button>
+            <button class="preset-btn" id="btn-reset">重置视口</button>
+        </div>
+    </div>
+
+    <!-- 右下角图例 -->
+    <div class="hud-overlay legend-card">
+        <div class="legend-item"><span class="color-tag" style="background:#fbbf24;"></span> 地球静止轨道 (GEO: ~35,786 km)</div>
+        <div class="legend-item"><span class="color-tag" style="background:#38bdf8;"></span> 中地球导航轨道 (MEO: 10,000-25,000 km)</div>
+        <div class="legend-item"><span class="color-tag" style="background:#4ade80;"></span> 莫尼亚大椭圆轨道 (HEO: 高偏心率)</div>
+        <div class="legend-item"><span class="color-tag" style="background:#c084fc;"></span> 超远地/深空中继网 (50,000-120,000 km)</div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 初始化 Three.js 场景与渲染器
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030712, 0.0008);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(120, 70, 160);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 15;
+        controls.maxDistance = 600;
+        controls.rotateSpeed = 0.8;
+
+        // ==========================================
+        // 2. 程序化生成地球、云层与大气发光
+        // ==========================================
+        const EARTH_RADIUS = 10.0; // 地球基准半径
+
+        // 生成程序化地球贴图 (无外部依赖，保证离线即开即用)
+        function createProceduralEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // 基础深蓝海洋渐变
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            oceanGrad.addColorStop(0, '#0c2444');
+            oceanGrad.addColorStop(0.5, '#05162a');
+            oceanGrad.addColorStop(1, '#0c2444');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制经纬网格与大陆板块示意
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 64) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 64) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 大陆岛屿轮廓群
+            ctx.fillStyle = '#1e3a5f';
+            const seeds = [
+                {x: 400, y: 350, r: 240}, {x: 650, y: 400, r: 180},
+                {x: 1200, y: 320, r: 300}, {x: 1450, y: 480, r: 220},
+                {x: 1650, y: 700, r: 160}, {x: 550, y: 720, r: 200},
+                {x: 950, y: 280, r: 140}, {x: 1050, y: 550, r: 190}
+            ];
+            seeds.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+                // 陆地内部高亮
+                ctx.fillStyle = '#2d5a88';
+                ctx.beginPath();
+                ctx.arc(s.x + 20, s.y - 15, s.r * 0.65, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#1e3a5f';
+            });
+
+            // 极地冰川
+            ctx.fillStyle = 'rgba(240, 249, 255, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, 60);
+            ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        // 云层贴图
+        function createProceduralCloudTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            for (let i = 0; i < 180; i++) {
+                const x = Math.random() * canvas.width;
+                const y = 80 + Math.random() * (canvas.height - 160);
+                const rx = 30 + Math.random() * 80;
+                const ry = 10 + Math.random() * 25;
+                ctx.beginPath();
+                ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 创建地球本体
+        const earthGroup = new THREE.Group();
+        earthGroup.rotation.z = 23.44 * Math.PI / 180; // 地轴倾角 23.44 度
+        scene.add(earthGroup);
+
+        const earthGeom = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
+        const earthMat = new THREE.MeshPhongMaterial({
+            map: createProceduralEarthTexture(),
+            shininess: 25,
+            specular: new THREE.Color(0x1e40af),
+            emissive: new THREE.Color(0x020617)
+        });
+        const earthMesh = new THREE.Mesh(earthGeom, earthMat);
+        earthGroup.add(earthMesh);
+
+        // 云层网格
+        const cloudGeom = new THREE.SphereGeometry(EARTH_RADIUS + 0.18, 64, 64);
+        const cloudMat = new THREE.MeshLambertMaterial({
+            map: createProceduralCloudTexture(),
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const cloudMesh = new THREE.Mesh(cloudGeom, cloudMat);
+        earthGroup.add(cloudMesh);
+
+        // 大气层散射辉光 Shader
+        const atmosphereGeom = new THREE.SphereGeometry(EARTH_RADIUS * 1.18, 64, 64);
+        const atmosphereMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                void main() {
+                    vec3 viewDir = normalize(-vPosition);
+                    float intensity = pow(0.7 - dot(vNormal, viewDir), 2.2);
+                    gl_FragColor = vec4(0.22, 0.74, 0.97, 1.0) * intensity * 1.8;
+                }
+            `,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+            transparent: true
+        });
+        const atmosphereMesh = new THREE.Mesh(atmosphereGeom, atmosphereMat);
+        earthGroup.add(atmosphereMesh);
+
+        // ==========================================
+        // 3. 构建 30,000 颗远地卫星群 (GPU 加速)
+        // ==========================================
+        const SATELLITE_COUNT = 30000;
+        const satGeometry = new THREE.BufferGeometry();
+
+        // 顶点属性数组
+        const aSemiMajor = new Float32Array(SATELLITE_COUNT);      // 半长轴 a
+        const aEccentricity = new Float32Array(SATELLITE_COUNT);   // 偏心率 e
+        const aInclination = new Float32Array(SATELLITE_COUNT);    // 轨道倾角 i
+        const aRAAN = new Float32Array(SATELLITE_COUNT);           // 升交点赤经 Ω
+        const aArgP = new Float32Array(SATELLITE_COUNT);           // 近地点幅角 ω
+        const aMeanAnomaly0 = new Float32Array(SATELLITE_COUNT);   // 初始平近点角 M0
+        const aSpeed = new Float32Array(SATELLITE_COUNT);          // 轨道角速度 n (开普勒第三定律: n ∝ a^-1.5)
+        const aType = new Float32Array(SATELLITE_COUNT);           // 类型 (0: GEO, 1: MEO, 2: HEO, 3: DeepSpace)
+        const dummyPositions = new Float32Array(SATELLITE_COUNT * 3);
+
+        // 分配 30,000 颗卫星各轨道层参数
+        for (let i = 0; i < SATELLITE_COUNT; i++) {
+            let type, a, e, inc, raan, argP, M0;
+
+            if (i < 10000) {
+                // 1. 地球静止轨道 (GEO: ~35,786 km) -> 10,000 颗
+                // 半径约 66.0 (相对于地球半径 10)
+                type = 0.0;
+                a = 66.0 + (Math.random() - 0.5) * 2.5;
+                e = Math.random() * 0.015; // 几乎纯圆
+                inc = (Math.random() - 0.5) * 0.08; // 极小倾角 (赤道环)
+                raan = Math.random() * Math.PI * 2;
+                argP = Math.random() * Math.PI * 2;
+                M0 = (i / 10000.0) * Math.PI * 2 + Math.random() * 0.05; // 均匀分布成环
+            } else if (i < 22000) {
+                // 2. 中地球轨道 (MEO: GPS/北斗/伽利略星座群) -> 12,000 颗
+                type = 1.0;
+                a = 28.0 + Math.random() * 22.0; // 28 ~ 50 半径
+                e = 0.01 + Math.random() * 0.08;
+                // 沃克星座常见倾角 (50° ~ 65°)
+                inc = (50.0 + Math.random() * 15.0) * (Math.PI / 180.0);
+                if (Math.random() > 0.5) inc = Math.PI - inc; // 顺行/逆行兼备
+                raan = Math.random() * Math.PI * 2;
+                argP = Math.random() * Math.PI * 2;
+                M0 = Math.random() * Math.PI * 2;
+            } else if (i < 27000) {
+                // 3. 高椭圆轨道 (HEO: 莫尼亚/大椭圆通信侦察) -> 5,000 颗
+                type = 2.0;
+                a = 45.0 + Math.random() * 35.0;
+                e = 0.55 + Math.random() * 0.28; // 高偏心率大椭圆
+                inc = 63.4 * (Math.PI / 180.0) + (Math.random() - 0.5) * 0.15; // 临界倾角 63.4° 消除近地点漂移
+                raan = Math.random() * Math.PI * 2;
+                argP = (Math.random() > 0.5 ? 270 : 90) * (Math.PI / 180.0); // 远地点置于两极上方
+                M0 = Math.random() * Math.PI * 2;
+            } else {
+                // 4. 超远地/深空中继探测网络 -> 3,000 颗
+                type = 3.0;
+                a = 85.0 + Math.random() * 75.0; // 超广阔深空
+                e = 0.1 + Math.random() * 0.45;
+                inc = Math.random() * Math.PI; // 全天区覆盖
+                raan = Math.random() * Math.PI * 2;
+                argP = Math.random() * Math.PI * 2;
+                M0 = Math.random() * Math.PI * 2;
+            }
+
+            // 开普勒第三定律计算角速度: n = sqrt(GM / a^3) -> 归一化系数
+            const speed = 40.0 / Math.pow(a, 1.5);
+
+            aSemiMajor[i] = a;
+            aEccentricity[i] = e;
+            aInclination[i] = inc;
+            aRAAN[i] = raan;
+            aArgP[i] = argP;
+            aMeanAnomaly0[i] = M0;
+            aSpeed[i] = speed;
+            aType[i] = type;
+
+            dummyPositions[i * 3 + 0] = 0;
+            dummyPositions[i * 3 + 1] = 0;
+            dummyPositions[i * 3 + 2] = 0;
+        }
+
+        satGeometry.setAttribute('position', new THREE.BufferAttribute(dummyPositions, 3));
+        satGeometry.setAttribute('aSemiMajor', new THREE.BufferAttribute(aSemiMajor, 1));
+        satGeometry.setAttribute('aEccentricity', new THREE.BufferAttribute(aEccentricity, 1));
+        satGeometry.setAttribute('aInclination', new THREE.BufferAttribute(aInclination, 1));
+        satGeometry.setAttribute('aRAAN', new THREE.BufferAttribute(aRAAN, 1));
+        satGeometry.setAttribute('aArgP', new THREE.BufferAttribute(aArgP, 1));
+        satGeometry.setAttribute('aMeanAnomaly0', new THREE.BufferAttribute(aMeanAnomaly0, 1));
+        satGeometry.setAttribute('aSpeed', new THREE.BufferAttribute(aSpeed, 1));
+        satGeometry.setAttribute('aType', new THREE.BufferAttribute(aType, 1));
+
+        // 自定义 GPU 顶点与片元着色器材质
+        const satMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0.0 },
+                uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+                uPointSize: { value: 3.5 },
+                uShowGeo: { value: 1.0 },
+                uShowMeo: { value: 1.0 },
+                uShowHeo: { value: 1.0 },
+                uShowDeep: { value: 1.0 }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform float uPixelRatio;
+                uniform float uPointSize;
+                uniform float uShowGeo;
+                uniform float uShowMeo;
+                uniform float uShowHeo;
+                uniform float uShowDeep;
+
+                attribute float aSemiMajor;
+                attribute float aEccentricity;
+                attribute float aInclination;
+                attribute float aRAAN;
+                attribute float aArgP;
+                attribute float aMeanAnomaly0;
+                attribute float aSpeed;
+                attribute float aType;
+
+                varying vec3 vColor;
+                varying float vAlpha;
+
+                void main() {
+                    // 轨道图层可见性过滤
+                    float visible = 1.0;
+                    if (aType < 0.5 && uShowGeo < 0.5) visible = 0.0;
+                    else if (aType >= 0.5 && aType < 1.5 && uShowMeo < 0.5) visible = 0.0;
+                    else if (aType >= 1.5 && aType < 2.5 && uShowHeo < 0.5) visible = 0.0;
+                    else if (aType >= 2.5 && uShowDeep < 0.5) visible = 0.0;
+
+                    if (visible < 0.5) {
+                        gl_Position = vec4(2.0, 2.0, 2.0, 0.0); // 移出视锥裁剪
+                        return;
+                    }
+
+                    // 开普勒方程解析解算 (一阶与二阶展开近似解)
+                    float M = aMeanAnomaly0 + aSpeed * uTime;
+                    float E = M + aEccentricity * sin(M) + 0.5 * aEccentricity * aEccentricity * sin(2.0 * M);
+
+                    // 轨道平面内坐标 (真近点角与矢径)
+                    float r = aSemiMajor * (1.0 - aEccentricity * cos(E));
+                    float sinE = sin(E);
+                    float cosE = cos(E);
+                    float xOrb = aSemiMajor * (cosE - aEccentricity);
+                    float yOrb = aSemiMajor * sqrt(1.0 - aEccentricity * aEccentricity) * sinE;
+
+                    // 开普勒三维欧拉角旋转转换到惯性坐标系
+                    float cosO = cos(aRAAN);
+                    float sinO = sin(aRAAN);
+                    float cosi = cos(aInclination);
+                    float sini = sin(aInclination);
+                    float cosw = cos(aArgP);
+                    float sinw = sin(aArgP);
+
+                    vec3 P = vec3(
+                        cosO * cosw - sinO * sinw * cosi,
+                        sinO * cosw + cosO * sinw * cosi,
+                        sinw * sini
+                    );
+                    vec3 Q = vec3(
+                        -cosO * sinw - sinO * cosw * cosi,
+                        -sinO * sinw + cosO * cosw * cosi,
+                        cosw * sini
+                    );
+
+                    vec3 satInertialPos = xOrb * P + yOrb * Q;
+
+                    // 映射到 Three.js Y-up 坐标 (X, Z水平赤道面, Y极轴)
+                    vec3 worldPos = vec3(satInertialPos.x, satInertialPos.z, satInertialPos.y);
+
+                    vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+
+                    // 距离衰减与粒子大小
+                    gl_PointSize = (uPointSize * uPixelRatio) * (80.0 / -mvPosition.z);
+                    gl_PointSize = clamp(gl_PointSize, 1.2, 16.0);
+
+                    // 根据卫星类型分配配色
+                    if (aType < 0.5) {
+                        vColor = vec3(0.98, 0.75, 0.14); // GEO: 琥珀金
+                        vAlpha = 0.95;
+                    } else if (aType < 1.5) {
+                        vColor = vec3(0.22, 0.74, 0.97); // MEO: 天空青蓝
+                        vAlpha = 0.85;
+                    } else if (aType < 2.5) {
+                        vColor = vec3(0.29, 0.87, 0.50); // HEO: 霓虹翠绿
+                        vAlpha = 0.90;
+                    } else {
+                        vColor = vec3(0.75, 0.52, 0.99); // 深空: 罗兰紫
+                        vAlpha = 0.80;
+                    }
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vColor;
+                varying float vAlpha;
+
+                void main() {
+                    // 圆形发光光晕粒子
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float dist = length(coord);
+                    if (dist > 0.5) discard;
+
+                    float glow = pow(1.0 - dist * 2.0, 1.6);
+                    gl_FragColor = vec4(vColor, vAlpha * glow);
+                }
+            `,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const satelliteSystem = new THREE.Points(satGeometry, satMaterial);
+        scene.add(satelliteSystem);
+
+        // ==========================================
+        // 4. 深空星图与场景光照
+        // ==========================================
+        // 太阳平行光
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(200, 50, 150);
+        scene.add(sunLight);
+
+        // 暗部柔和环境光
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 0.4);
+        scene.add(ambientLight);
+
+        // 5,000 颗背景星空
+        const starGeom = new THREE.BufferGeometry();
+        const starPos = new Float32Array(5000 * 3);
+        for (let i = 0; i < 5000; i++) {
+            const r = 800 + Math.random() * 400;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            starPos[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta);
+            starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+            starPos[i * 3 + 2] = r * Math.cos(phi);
+        }
+        starGeom.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 1.2, transparent: true, opacity: 0.8 });
+        scene.add(new THREE.Points(starGeom, starMat));
+
+        // ==========================================
+        // 5. 动画循环与状态遥测
+        // ==========================================
+        let simTime = 0;
+        let timeSpeed = 1.0;
+        let lastTimestamp = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        const fpsDisplay = document.getElementById('fps-display');
+        const simTimeDisplay = document.getElementById('sim-time');
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            const delta = (now - lastTimestamp) * 0.001;
+            lastTimestamp = now;
+
+            // 更新时间与着色器
+            simTime += delta * timeSpeed;
+            satMaterial.uniforms.uTime.value = simTime;
+
+            // 地球自转与云层轻微差速
+            earthMesh.rotation.y += delta * 0.05 * timeSpeed;
+            cloudMesh.rotation.y += delta * 0.065 * timeSpeed;
+
+            // FPS 计算与耗时显示
+            frameCount++;
+            if (now - lastFpsUpdate >= 500) {
+                const fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+                fpsDisplay.textContent = fps;
+                frameCount = 0;
+                lastFpsUpdate = now;
+                simTimeDisplay.textContent = (simTime * 0.1).toFixed(1) + " d";
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        requestAnimationFrame(animate);
+
+        // ==========================================
+        // 6. UI 事件交互绑定
+        // ==========================================
+        // 速度调节
+        const speedSlider = document.getElementById('time-speed');
+        const speedVal = document.getElementById('speed-val');
+        const speedInd = document.getElementById('speed-indicator');
+        speedSlider.addEventListener('input', (e) => {
+            timeSpeed = parseFloat(e.target.value);
+            speedVal.textContent = timeSpeed.toFixed(1) + 'x';
+            speedInd.textContent = timeSpeed.toFixed(1) + 'x';
+        });
+
+        // 粒子大小调节
+        const sizeSlider = document.getElementById('point-size');
+        const sizeVal = document.getElementById('size-val');
+        sizeSlider.addEventListener('input', (e) => {
+            const sz = parseFloat(e.target.value);
+            satMaterial.uniforms.uPointSize.value = sz;
+            sizeVal.textContent = sz.toFixed(1) + ' px';
+        });
+
+        // 轨道图层切换
+        const toggles = document.querySelectorAll('.toggle-btn');
+        toggles.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                const isActive = btn.classList.contains('active') ? 1.0 : 0.0;
+                const type = btn.dataset.type;
+
+                if (type === 'geo') satMaterial.uniforms.uShowGeo.value = isActive;
+                if (type === 'meo') satMaterial.uniforms.uShowMeo.value = isActive;
+                if (type === 'heo') satMaterial.uniforms.uShowHeo.value = isActive;
+                if (type === 'deep') satMaterial.uniforms.uShowDeep.value = isActive;
+            });
+        });
+
+        // 视点相机预设
+        function moveCamera(x, y, z, tx = 0, ty = 0, tz = 0) {
+            const startPos = camera.position.clone();
+            const targetPos = new THREE.Vector3(x, y, z);
+            const startTime = performance.now();
+            const duration = 1200;
+
+            function step(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1.0);
+                const ease = 0.5 - Math.cos(progress * Math.PI) / 2; // 平滑缓动
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                controls.target.set(tx, ty, tz);
+
+                if (progress < 1.0) {
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        document.getElementById('btn-global').addEventListener('click', () => moveCamera(140, 90, 180));
+        document.getElementById('btn-geo').addEventListener('click', () => moveCamera(0, 12, 110));
+        document.getElementById('btn-polar').addEventListener('click', () => moveCamera(0, 190, 10));
+        document.getElementById('btn-reset').addEventListener('click', () => moveCamera(120, 70, 160));
+
+        // 窗口缩放自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            satMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+        });
+    </script>
+</body>
+</html>

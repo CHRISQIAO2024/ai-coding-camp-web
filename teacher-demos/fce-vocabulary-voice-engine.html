@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>FCE 词汇语音交互引擎</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0f172a; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        .dashboard { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(12px); border: 2px solid #8b5cf6; padding: 15px 30px; border-radius: 30px; color: #ddd6fe; font-size: 16px; font-weight: bold; pointer-events: none; z-index: 100; text-align: center; }
+        .dashboard span { color: #f472b6; font-size: 22px; margin: 0 8px; }
+        .control-panel { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        #add-btn { background: #7c3aed; border: 2px solid #a78bfa; color: #fff; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.5); }
+        #add-btn:hover { background: #8b5cf6; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        剩余词库: <span id="count-display">0</span> | 已解锁: <span id="score-display">0</span>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+
+    <div class="control-panel">
+        <button id="add-btn">🚀 抽取 3 个 FCE 高阶词</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const countDisplay = document.getElementById('count-display');
+        const addBtn = document.getElementById('add-btn');
+
+        let width, height;
+        let bubbles = [];
+        let score = 0;
+
+        // FCE (B2) 词库
+        let wordDatabase = [
+            { en: "ACHIEVE", cn: "达成" }, { en: "AMBITIOUS", cn: "有抱负的" }, { en: "CHALLENGE", cn: "挑战" }, { en: "CONSEQUENCE", cn: "后果" },
+            { en: "DEVELOP", cn: "发展" }, { en: "EFFICIENT", cn: "高效的" }, { en: "GUARANTEE", cn: "保证" }, { en: "INTERPRET", cn: "解释" },
+            { en: "MOTIVATION", cn: "动机" }, { en: "NEGOTIATE", cn: "谈判" }, { en: "OBJECTIVE", cn: "目标" }, { en: "PERSPECTIVE", cn: "视角" },
+            { en: "POTENTIAL", cn: "潜力" }, { en: "PRINCIPLE", cn: "原则" }, { en: "RELEVANT", cn: "相关的" }, { en: "SIGNIFICANT", cn: "重大的" },
+            { en: "STRATEGY", cn: "策略" }, { en: "SUSTAIN", cn: "维持" }, { en: "TRANSFORM", cn: "转变" }, { en: "VERSATILE", cn: "多功能的" }
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        shuffle(wordDatabase);
+        let pointer = 0;
+
+        function addWords() {
+            for(let i = 0; i < 3; i++) {
+                if (pointer >= wordDatabase.length) {
+                    alert("✅ 高阶词库已循环完毕，重置进度！");
+                    shuffle(wordDatabase);
+                    pointer = 0;
+                }
+                bubbles.push(new Bubble(wordDatabase[pointer]));
+                pointer++;
+            }
+        }
+
+        addBtn.addEventListener('click', (e) => { e.stopPropagation(); addWords(); });
+
+        class Bubble {
+            constructor(wordData) {
+                this.radius = Math.max(50, wordData.en.length * 8);
+                this.x = Math.random() * (width - 120) + 60;
+                this.y = -50;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = Math.random() * 2 + 3;
+                this.en = wordData.en;
+                this.cn = wordData.cn;
+                this.color = `hsl(${Math.random() * 360}, 60%, 50%)`;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < this.radius || this.x > width - this.radius) this.vx *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                let fontSize = Math.min(18, (this.radius * 2) / this.en.length * 1.2);
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.en, this.x, this.y);
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                let b = bubbles[i];
+                let dist = Math.sqrt((e.clientX - b.x)**2 + (e.clientY - b.y)**2);
+                if (dist < b.radius) {
+                    // --- 语音合成引擎开启 ---
+                    const utterance = new SpeechSynthesisUtterance(b.en);
+                    utterance.lang = 'en-US'; // 设置美式发音
+                    utterance.rate = 0.9;     // 语速略慢，适合孩子跟读
+                    window.speechSynthesis.speak(utterance);
+                    
+                    alert(b.en + " = " + b.cn);
+                    bubbles.splice(i, 1);
+                    score += 10;
+                    scoreDisplay.innerText = score;
+                }
+            }
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            countDisplay.innerText = bubbles.length;
+            bubbles.forEach(b => { b.update(); b.draw(); });
+            requestAnimationFrame(animate);
+        }
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        
+        resize();
+        animate();
+    </script>
+</body>
+</html>

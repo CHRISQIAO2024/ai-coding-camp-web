@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群智涌现 · 仿生 Agent 鸟群</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #030712;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 极客指挥台 */
+        .commander-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 16px 32px;
+            border-radius: 16px;
+            z-index: 10;
+            display: flex;
+            gap: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #9ca3af;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        button.active {
+            color: #fff;
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+            text-shadow: 0 0 10px #8b5cf6;
+        }
+
+        .hud-info {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(139, 92, 246, 0.8);
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 13px;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+        }
+
+        .hud-info span { color: #e5e7eb; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="hud-info">
+        SWARM_LOGIC: <span id="mode-text">自然巡游 (NATURE CRUISE)</span><br>
+        AGENTS_ONLINE: <span id="agent-count">250</span><br>
+        [ 移动鼠标释放捕食者斥力 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+
+    <div class="commander-panel">
+        <button class="active" onclick="setMode('nature', '自然巡游', this)">自然巡游</button>
+        <button onclick="setMode('frenzy', '狂热暴走', this)">狂热暴走</button>
+        <button onclick="setMode('vortex', '漩涡风暴', this)">漩涡风暴</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const modeText = document.getElementById('mode-text');
+
+        let width, height;
+        let mouse = { x: -1000, y: -1000 };
+        let mode = 'nature'; // nature, frenzy, vortex
+        let time = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function setMode(newMode, name, btn) {
+            mode = newMode;
+            modeText.innerText = name + ' (' + newMode.toUpperCase() + ')';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // ==========================================
+        // Boids (多智能体鸟群) 算法核心
+        // ==========================================
+
+        class Boid {
+            constructor() {
+                this.position = { x: Math.random() * width, y: Math.random() * height };
+                this.velocity = { x: (Math.random() - 0.5) * 4, y: (Math.random() - 0.5) * 4 };
+                this.acceleration = { x: 0, y: 0 };
+                
+                // 基础属性
+                this.maxForce = 0.05; 
+                this.maxSpeed = 3;
+                this.size = 6;
+                // 随机分配一点颜色差异
+                this.hueOffset = Math.random() * 40 - 20; 
+            }
+
+            updateLimits() {
+                if (mode === 'nature') {
+                    this.maxSpeed = 3;
+                    this.maxForce = 0.05;
+                } else if (mode === 'frenzy') {
+                    this.maxSpeed = 7;
+                    this.maxForce = 0.2;
+                } else if (mode === 'vortex') {
+                    this.maxSpeed = 4;
+                    this.maxForce = 0.1;
+                }
+            }
+
+            // 边缘环绕
+            edges() {
+                if (this.position.x > width + 20) this.position.x = -20;
+                else if (this.position.x < -20) this.position.x = width + 20;
+                if (this.position.y > height + 20) this.position.y = -20;
+                else if (this.position.y < -20) this.position.y = height + 20;
+            }
+
+            // 计算欧几里得距离
+            dist(other) {
+                let dx = this.position.x - other.position.x;
+                let dy = this.position.y - other.position.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            // 设置向量大小
+            setMag(vector, mag) {
+                let currentMag = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+                if (currentMag !== 0) {
+                    vector.x = (vector.x / currentMag) * mag;
+                    vector.y = (vector.y / currentMag) * mag;
+                }
+            }
+
+            // 限制向量最大值
+            limit(vector, max) {
+                let currentMag = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+                if (currentMag > max) {
+                    this.setMag(vector, max);
+                }
+            }
+
+            // 1. 对齐 (Alignment)
+            align(boids) {
+                let perceptionRadius = 50;
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                for (let other of boids) {
+                    if (other !== this && this.dist(other) < perceptionRadius) {
+                        steering.x += other.velocity.x;
+                        steering.y += other.velocity.y;
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    this.setMag(steering, this.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    this.limit(steering, this.maxForce);
+                }
+                return steering;
+            }
+
+            // 2. 凝聚 (Cohesion)
+            cohesion(boids) {
+                let perceptionRadius = 60;
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                for (let other of boids) {
+                    if (other !== this && this.dist(other) < perceptionRadius) {
+                        steering.x += other.position.x;
+                        steering.y += other.position.y;
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    // 指向目标的向量
+                    steering.x -= this.position.x;
+                    steering.y -= this.position.y;
+                    this.setMag(steering, this.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    this.limit(steering, this.maxForce);
+                }
+                return steering;
+            }
+
+            // 3. 分离 (Separation)
+            separation(boids) {
+                let perceptionRadius = 30;
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                for (let other of boids) {
+                    let d = this.dist(other);
+                    if (other !== this && d < perceptionRadius) {
+                        let diff = { x: this.position.x - other.position.x, y: this.position.y - other.position.y };
+                        diff.x /= (d * d); // 越近斥力越大
+                        diff.y /= (d * d);
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    this.setMag(steering, this.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    this.limit(steering, this.maxForce);
+                }
+                return steering;
+            }
+
+            // 避开鼠标 (捕食者效应)
+            flee(x, y) {
+                let perceptionRadius = 150;
+                let d = Math.sqrt(Math.pow(this.position.x - x, 2) + Math.pow(this.position.y - y, 2));
+                let steering = { x: 0, y: 0 };
+                if (d < perceptionRadius) {
+                    steering.x = this.position.x - x;
+                    steering.y = this.position.y - y;
+                    this.setMag(steering, this.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    this.limit(steering, this.maxForce * 2.5); // 避障的权重最高
+                }
+                return steering;
+            }
+
+            // 漩涡引力
+            attractToCenter() {
+                if (mode !== 'vortex') return { x: 0, y: 0 };
+                let centerX = width / 2;
+                let centerY = height / 2;
+                let steering = { x: centerX - this.position.x, y: centerY - this.position.y };
+                // 加上切线速度形成漩涡
+                let tangent = { x: -steering.y, y: steering.x };
+                steering.x += tangent.x * 2;
+                steering.y += tangent.y * 2;
+                
+                this.setMag(steering, this.maxSpeed);
+                steering.x -= this.velocity.x;
+                steering.y -= this.velocity.y;
+                this.limit(steering, this.maxForce * 0.5);
+                return steering;
+            }
+
+            // 执行所有行为
+            flock(boids) {
+                this.updateLimits();
+                
+                let alignment = this.align(boids);
+                let cohesion = this.cohesion(boids);
+                let separation = this.separation(boids);
+                let fleeing = this.flee(mouse.x, mouse.y);
+                let vortex = this.attractToCenter();
+
+                // 权重调整
+                this.acceleration.x += alignment.x * 1.0;
+                this.acceleration.y += alignment.y * 1.0;
+                this.acceleration.x += cohesion.x * 1.0;
+                this.acceleration.y += cohesion.y * 1.0;
+                this.acceleration.x += separation.x * 1.5;
+                this.acceleration.y += separation.y * 1.5;
+                this.acceleration.x += fleeing.x * 3.0; // 极度害怕捕食者
+                this.acceleration.y += fleeing.y * 3.0;
+                this.acceleration.x += vortex.x * 1.2;
+                this.acceleration.y += vortex.y * 1.2;
+            }
+
+            update() {
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+                this.limit(this.velocity, this.maxSpeed);
+                
+                // 重置加速度
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+            }
+
+            draw() {
+                // 计算当前飞行方向的角度
+                let angle = Math.atan2(this.velocity.y, this.velocity.x);
+                
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(angle);
+
+                // 动态颜色：基于时间和个体偏移
+                let hue = 260 + this.hueOffset + Math.sin(time * 0.05) * 30; // 霓虹紫/蓝
+                
+                // 绘制科幻风格的三角翼形
+                ctx.beginPath();
+                ctx.moveTo(this.size * 2, 0); // 机头
+                ctx.lineTo(-this.size, this.size); // 左翼
+                ctx.lineTo(-this.size * 0.5, 0); // 尾翼凹陷
+                ctx.lineTo(-this.size, -this.size); // 右翼
+                ctx.closePath();
+
+                // 填充与发光
+                ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
+                ctx.fill();
+
+                // 重置画布状态
+                ctx.shadowBlur = 0;
+                ctx.rotate(-angle);
+                ctx.translate(-this.position.x, -this.position.y);
+            }
+        }
+
+        // 初始化 Agent 群体
+        const flock = [];
+        const FLOCK_SIZE = 250;
+        for (let i = 0; i < FLOCK_SIZE; i++) {
+            flock.push(new Boid());
+        }
+
+        function animate() {
+            // 保留极短的残影，增加速度感
+            ctx.fillStyle = 'rgba(3, 7, 18, 0.3)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.globalCompositeOperation = 'lighter';
+            time++;
+
+            // 绘制鼠标干扰区域（捕食者光环）
+            if (mouse.x > 0 && mouse.y > 0) {
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(139, 92, 246, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+                ctx.fill();
+            }
+
+            // 更新所有 Agent
+            for (let boid of flock) {
+                boid.edges();
+                boid.flock(flock);
+                boid.update();
+                boid.draw();
+            }
+
+            ctx.globalCompositeOperation = 'source-over';
+            requestAnimationFrame(animate);
+        }
+
+        // 交互监听
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        // 移出屏幕时取消捕食者效应
+        window.addEventListener('mouseout', () => {
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+
+        animate();
+    </script>
+</body>
+</html>

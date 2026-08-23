@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深空黑洞 · 引力漩涡</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 极简未来风控制台 */
+        .control-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 24px;
+            border-radius: 30px;
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            color: #8892b0;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        button:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button.active {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .hud {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(100, 255, 255, 0.7);
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            letter-spacing: 2px;
+            line-height: 1.8;
+        }
+
+        .hud span { color: #fff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        STATUS: <span id="status-text">星云环绕 (NEBULA ORBIT)</span><br>
+        PARTICLES: <span id="particle-count">0</span><br>
+        [ 拖拽 / 移动鼠标以指引奇点核心 ]
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="control-panel">
+        <button class="active" onclick="setMode('orbit', this, '星云环绕')">星云环绕</button>
+        <button onclick="setMode('collapse', this, '引力坍缩')">引力坍缩</button>
+        <button onclick="setMode('repel', this, '反转排斥')">反转排斥</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const countText = document.getElementById('particle-count');
+        const statusText = document.getElementById('status-text');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 核心交互变量
+        let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+        let particles = [];
+        const MAX_PARTICLES = 1500; // 粒子数量上限，防止性能爆炸
+        
+        // 物理引擎状态机
+        let physicsMode = 'orbit'; // orbit, collapse, repel
+
+        function setMode(mode, btn, name) {
+            physicsMode = mode;
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            statusText.innerText = name + ' (' + mode.toUpperCase() + ')';
+        }
+
+        class Particle {
+            constructor() {
+                // 随机从边缘外侧或随机位置生成
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * (canvas.width / 2) + 200;
+                this.x = canvas.width / 2 + Math.cos(angle) * radius;
+                this.y = canvas.height / 2 + Math.sin(angle) * radius;
+                
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                
+                this.size = Math.random() * 1.5 + 0.5;
+                // 色相：从蓝青色到紫色的渐变随机
+                this.hue = 180 + Math.random() * 100; 
+            }
+
+            update() {
+                // 计算当前粒子与鼠标（引力源）的距离和角度
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let angle = Math.atan2(dy, dx);
+                
+                // 为了防止距离为0导致的无限大受力，设定一个最小核心半径
+                if (distance < 5) distance = 5;
+
+                // 引力大小（遵循简化的反平方定律变体）
+                let force = 400 / (distance * distance); 
+                if (force > 1.5) force = 1.5; // 限制最大受力
+
+                // 根据不同模式计算施加的速度向量
+                if (physicsMode === 'orbit') {
+                    // 切线力（造成漩涡） + 弱向心力
+                    let swirlAngle = angle + (Math.PI / 2); // 90度切线
+                    this.vx += Math.cos(angle) * force * 0.5 + Math.cos(swirlAngle) * force * 1.2;
+                    this.vy += Math.sin(angle) * force * 0.5 + Math.sin(swirlAngle) * force * 1.2;
+                } 
+                else if (physicsMode === 'collapse') {
+                    // 强向心力（直接吸入）
+                    this.vx += Math.cos(angle) * force * 2.5;
+                    this.vy += Math.sin(angle) * force * 2.5;
+                } 
+                else if (physicsMode === 'repel') {
+                    // 强离心力（向外排斥）+ 持续旋转
+                    let swirlAngle = angle + (Math.PI / 2);
+                    this.vx -= Math.cos(angle) * force * 2;
+                    this.vy += Math.sin(swirlAngle) * force * 0.8;
+                }
+
+                // 添加空间阻尼（摩擦力），防止粒子速度无限增加
+                this.vx *= 0.96;
+                this.vy *= 0.96;
+
+                // 更新位置
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 边界检测：如果粒子飞出屏幕极远或被吸入中心极近，则重置其位置
+                if (this.x < -100 || this.x > canvas.width + 100 || 
+                    this.y < -100 || this.y > canvas.height + 100 || 
+                    (distance < 10 && physicsMode === 'collapse')) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                const spawnAngle = Math.random() * Math.PI * 2;
+                const spawnRadius = Math.max(canvas.width, canvas.height) * 0.6;
+                this.x = mouse.x + Math.cos(spawnAngle) * spawnRadius;
+                this.y = mouse.y + Math.sin(spawnAngle) * spawnRadius;
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            draw() {
+                // 根据粒子的速度决定亮度，速度越快越亮
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const lightness = Math.min(50 + speed * 10, 100);
+                
+                ctx.fillStyle = `hsl(${this.hue}, 100%, ${lightness}%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 初始化粒子群
+        function init() {
+            particles = [];
+            for (let i = 0; i < 800; i++) {
+                particles.push(new Particle());
+            }
+            updateHUD();
+        }
+
+        function updateHUD() {
+            countText.innerText = particles.length;
+        }
+
+        // 动画主循环
+        function animate() {
+            // 制造深空拖影效果
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 激活叠加发光模式（神来之笔：让密集重叠的粒子产生刺眼的能量光）
+            ctx.globalCompositeOperation = 'lighter';
+
+            // 绘制“事件视界”核心黑洞视觉辅助线
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 25, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 更新和绘制所有粒子
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            // 动态补充粒子（缓慢增加到上限，增加“生长”感）
+            if (particles.length < MAX_PARTICLES && Math.random() < 0.3) {
+                particles.push(new Particle());
+                updateHUD();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 输入事件捕获
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+
+        // 启动宇宙
+        init();
+        animate();
+    </script>
+</body>
+</html>

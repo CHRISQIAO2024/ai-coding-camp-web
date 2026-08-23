@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模态跃迁 · 乔瑞专属进化引擎</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #030712;
+            font-family: 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 极客指挥控制台 */
+        .terminal-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-left: 3px solid #38bdf8;
+            border-right: 3px solid #38bdf8;
+            padding: 18px 30px;
+            border-radius: 12px;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.15);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bae6fd;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        button:hover {
+            color: #fff;
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button.active {
+            color: #020617;
+            background: #38bdf8;
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+        }
+        
+        .btn-special {
+            color: #fde047;
+            border-color: rgba(253, 224, 71, 0.3);
+        }
+        
+        .btn-special:hover {
+            background: rgba(253, 224, 71, 0.15);
+            border-color: rgba(253, 224, 71, 0.5);
+        }
+        
+        .btn-special.active {
+            color: #422006;
+            background: #facc15;
+            border-color: #facc15;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+        }
+
+        .hud-scan {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(56, 189, 248, 0.8);
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 12px;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+        }
+
+        .hud-scan span { color: #fff; font-weight: bold; }
+        
+        #text-canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-scan">
+        MODAL_STATUS: <span id="mode-text">游离态 (CHAOS)</span><br>
+        PARTICLE_AGENTS: <span id="particle-count">0</span><br>
+        [ 核心协议：系统演化就绪 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    <canvas id="text-canvas"></canvas>
+
+    <div class="terminal-panel">
+        <button class="active" onclick="morphToText('CHAOS', this)">星尘游离</button>
+        <button onclick="morphToText('乔', this)">指令：乔</button>
+        <button onclick="morphToText('瑞', this)">指令：瑞</button>
+        <button onclick="morphToText('乔瑞', this)">身份重构</button>
+        <button class="btn-special" onclick="morphToText('AI进化', this)">AI进化</button>
+        <button class="btn-special" onclick="morphToText('超级个体', this)">超级个体</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const textCanvas = document.getElementById('text-canvas');
+        const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
+        
+        const modeText = document.getElementById('mode-text');
+        const countText = document.getElementById('particle-count');
+
+        let width, height;
+        let particles = [];
+        const NUM_PARTICLES = 4500; 
+        
+        let currentTargetMode = 'CHAOS';
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            textCanvas.width = width;
+            textCanvas.height = height;
+            
+            if(currentTargetMode !== 'CHAOS') {
+                morphToText(currentTargetMode, document.querySelector('.active'));
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function getTextTargets(text) {
+            textCtx.clearRect(0, 0, width, height);
+            
+            let fontSize;
+            if (text.length === 1) {
+                fontSize = Math.min(width * 0.6, height * 0.6); 
+            } else if (text.length === 2) {
+                fontSize = Math.min(width * 0.4, height * 0.5);
+            } else {
+                fontSize = Math.min(width / (text.length * 1.05), height * 0.4);
+            }
+            
+            textCtx.font = `900 ${fontSize}px 'Microsoft YaHei', 'Segoe UI', sans-serif`;
+            textCtx.fillStyle = 'white';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            
+            textCtx.fillText(text, width / 2, height / 2);
+            
+            const imageData = textCtx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            let targets = [];
+            
+            const step = 5; 
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const index = (y * width + x) * 4;
+                    if (data[index + 3] > 128) {
+                        targets.push({ x: x, y: y });
+                    }
+                }
+            }
+            return targets;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                
+                this.maxSpeed = Math.random() * 8 + 6;
+                this.maxForce = Math.random() * 0.6 + 0.15;
+                this.size = Math.random() * 1.5 + 1.2;
+                
+                // 色彩分配：70% 量子蓝，30% 暗金色（增强科技感与尊贵感）
+                if (Math.random() > 0.3) {
+                    this.hue = 190 + Math.random() * 30; // Blue/Cyan
+                } else {
+                    this.hue = 35 + Math.random() * 20;  // Gold/Yellow
+                }
+            }
+
+            setTarget(x, y) {
+                this.targetX = x;
+                this.targetY = y;
+            }
+
+            setChaosTarget() {
+                this.targetX = Math.random() * width;
+                this.targetY = Math.random() * height;
+            }
+
+            update() {
+                let dx = this.targetX - this.x;
+                let dy = this.targetY - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                let desiredVx = 0;
+                let desiredVy = 0;
+
+                if (currentTargetMode === 'CHAOS') {
+                    if (distance < 50) this.setChaosTarget();
+                    let speed = this.maxSpeed * 0.3;
+                    desiredVx = (dx / distance) * speed;
+                    desiredVy = (dy / distance) * speed;
+                } else {
+                    if (distance > 0) {
+                        let speed = distance < 120 ? this.maxSpeed * (distance / 120) : this.maxSpeed;
+                        desiredVx = (dx / distance) * speed;
+                        desiredVy = (dy / distance) * speed;
+                    }
+                }
+
+                let steerX = desiredVx - this.vx;
+                let steerY = desiredVy - this.vy;
+                
+                let steerDist = Math.sqrt(steerX * steerX + steerY * steerY);
+                if (steerDist > this.maxForce) {
+                    steerX = (steerX / steerDist) * this.maxForce;
+                    steerY = (steerY / steerDist) * this.maxForce;
+                }
+
+                steerX += (Math.random() - 0.5) * 0.5;
+                steerY += (Math.random() - 0.5) * 0.5;
+
+                this.vx += steerX;
+                this.vy += steerY;
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                let speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                let lightness = Math.min(45 + speed * 12, 95);
+                
+                ctx.fillStyle = `hsl(${this.hue}, 95%, ${lightness}%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push(new Particle());
+        }
+        countText.innerText = NUM_PARTICLES;
+
+        window.morphToText = function(text, btn) {
+            currentTargetMode = text;
+            
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            let statusName = text === 'CHAOS' ? '游离态 (CHAOS)' : `形态重构 (${text})`;
+            modeText.innerText = statusName;
+
+            if (text === 'CHAOS') {
+                particles.forEach(p => p.setChaosTarget());
+            } else {
+                let targets = getTextTargets(text);
+                if(targets.length === 0) return; 
+                
+                targets.sort(() => Math.random() - 0.5);
+
+                for (let i = 0; i < particles.length; i++) {
+                    let target = targets[i % targets.length];
+                    particles[i].setTarget(target.x, target.y);
+                }
+            }
+        };
+
+        function animate() {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(3, 7, 18, 0.25)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.globalCompositeOperation = 'lighter';
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        morphToText('CHAOS');
+        animate();
+    </script>
+</body>
+</html>

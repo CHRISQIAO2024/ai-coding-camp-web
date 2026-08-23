@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量子交互流场</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050510;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            /* 阻止移动端默认的滑动刷新等行为 */
+            touch-action: none; 
+        }
+
+        /* 鼠标交互产生的波纹 */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid;
+            /* 使鼠标位于圆心 */
+            transform: translate(-50%, -50%);
+            /* 动画：展开并渐隐 */
+            animation: expand 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            /* 防止生成的波纹阻挡后续的鼠标点击 */
+            pointer-events: none;
+            /* 发光效果，颜色由内联样式动态控制 */
+            box-shadow: 0 0 20px currentColor, inset 0 0 20px currentColor;
+        }
+
+        @keyframes expand {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
+        }
+
+        /* 底部控制面板 */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            z-index: 10;
+            display: flex;
+            gap: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        /* 三种不同的能量光谱主题 */
+        button.cyan { color: #0ff; border-color: #0ff; }
+        button.cyan:hover, button.cyan.active { 
+            background: rgba(0, 255, 255, 0.15); 
+            box-shadow: 0 0 15px rgba(0,255,255,0.4); 
+        }
+        
+        button.magenta { color: #f0f; border-color: #f0f; }
+        button.magenta:hover, button.magenta.active { 
+            background: rgba(255, 0, 255, 0.15); 
+            box-shadow: 0 0 15px rgba(255,0,255,0.4); 
+        }
+
+        button.yellow { color: #ff0; border-color: #ff0; }
+        button.yellow:hover, button.yellow.active { 
+            background: rgba(255, 255, 0, 0.15); 
+            box-shadow: 0 0 15px rgba(255,255,0,0.4); 
+        }
+
+        .hint {
+            position: absolute;
+            top: 30px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 15px;
+            pointer-events: none;
+            letter-spacing: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hint">在屏幕区域点击或拖动鼠标</div>
+
+    <div class="control-panel">
+        <button class="cyan active" onclick="setColor('#0ff', this)">深海青</button>
+        <button class="magenta" onclick="setColor('#f0f', this)">霓虹紫</button>
+        <button class="yellow" onclick="setColor('#ff0', this)">矩阵黄</button>
+    </div>
+
+    <script>
+        // 初始颜色
+        let currentColor = '#0ff';
+        // 标记鼠标是否处于按下状态
+        let isDrawing = false;
+
+        // 切换波纹颜色
+        function setColor(color, btn) {
+            currentColor = color;
+            // 重置所有按钮状态
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            // 激活当前点击的按钮
+            btn.classList.add('active');
+        }
+
+        // 核心渲染函数：在指定坐标创建涟漪
+        function createRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.style.color = currentColor;
+            
+            document.body.appendChild(ripple);
+
+            // 动画时长为1秒，1秒后自动清理 DOM 节点，防止内存泄漏导致页面卡顿
+            setTimeout(() => {
+                ripple.remove();
+            }, 1000);
+        }
+
+        // 鼠标按下：生成一个涟漪，并开启连续绘制模式
+        window.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            createRipple(e.clientX, e.clientY);
+        });
+
+        // 鼠标松开：关闭连续绘制模式
+        window.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        // 节流控制 (Throttling)：防止鼠标移动时触发频率过高产生过多节点
+        let lastMove = 0;
+        window.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const now = Date.now();
+            if (now - lastMove > 40) { // 每 40 毫秒最多生成一个波纹
+                createRipple(e.clientX, e.clientY);
+                lastMove = now;
+            }
+        });
+
+        // 为移动设备 / 触屏设备提供相同支持
+        window.addEventListener('touchstart', (e) => {
+            createRipple(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: true});
+        
+        window.addEventListener('touchmove', (e) => {
+            const now = Date.now();
+            if (now - lastMove > 40) {
+                createRipple(e.touches[0].clientX, e.touches[0].clientY);
+                lastMove = now;
+            }
+        }, {passive: true});
+    </script>
+</body>
+</html>

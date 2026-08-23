@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赛博神经 · 自律突触网络</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050508;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 赛博朋克控制台 */
+        .cyber-panel {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 15, 25, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 40, 100, 0.2);
+            border-top: 1px solid rgba(255, 40, 100, 0.5);
+            padding: 14px 28px;
+            border-radius: 8px;
+            z-index: 10;
+            display: flex;
+            gap: 18px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 -2px 10px rgba(255, 40, 100, 0.2);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #8892b0;
+            padding: 10px 22px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        button:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        button.active {
+            color: #fff;
+            background: rgba(244, 63, 94, 0.15);
+            border-color: #f43f5e;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        }
+
+        /* 小光标装饰 */
+        button.active::before {
+            content: '>';
+            position: absolute;
+            left: 8px;
+            color: #f43f5e;
+            animation: blink 1s infinite;
+        }
+
+        .hud-display {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(244, 63, 94, 0.7);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(244, 63, 94, 0.3);
+        }
+
+        .hud-display span { color: #fff; font-weight: bold; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-display">
+        SYS.CORE: <span id="mode-text">主动索敌 (HUNTER MODE)</span><br>
+        IK_JOINTS: <span id="joint-count">0</span><br>
+        [ 移动指针以引导神经突触 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+
+    <div class="cyber-panel">
+        <button class="active" onclick="setMode('hunter', '主动索敌', this)">主动索敌</button>
+        <button onclick="setMode('wander', '深海漫游', this)">深海漫游</button>
+        <button onclick="setMode('defend', '核心防御', this)">核心防御</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const modeText = document.getElementById('mode-text');
+        const countText = document.getElementById('joint-count');
+
+        let width, height, centerX, centerY;
+        let mouse = { x: 0, y: 0 };
+        let mode = 'hunter'; // hunter, wander, defend
+        let time = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+            mouse.x = centerX;
+            mouse.y = centerY;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function setMode(newMode, name, btn) {
+            mode = newMode;
+            modeText.innerText = name + ' (' + newMode.toUpperCase() + ')';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // ==========================================
+        // 逆向运动学 (IK) 引擎核心
+        // ==========================================
+
+        class Segment {
+            constructor(x, y, len, angle) {
+                this.x = x;
+                this.y = y;
+                this.len = len;
+                this.angle = angle;
+            }
+
+            // 让当前关节的头部指向目标位置 (Follow)
+            follow(targetX, targetY) {
+                let dx = targetX - this.x;
+                let dy = targetY - this.y;
+                this.angle = Math.atan2(dy, dx);
+                // 将自身位置拉回到刚好接触目标的距离
+                this.x = targetX - Math.cos(this.angle) * this.len;
+                this.y = targetY - Math.sin(this.angle) * this.len;
+            }
+        }
+
+        class Tentacle {
+            constructor(baseX, baseY, numSegments, segmentLen, colorHue) {
+                this.baseX = baseX;
+                this.baseY = baseY;
+                this.segments = [];
+                this.colorHue = colorHue;
+                this.numSegments = numSegments;
+
+                // 初始生成关节段
+                for (let i = 0; i < numSegments; i++) {
+                    this.segments.push(new Segment(baseX, baseY, segmentLen, 0));
+                }
+                
+                // 为每根触手设置一个随机的漫游偏移量，让它们行为不一致
+                this.wanderOffset = Math.random() * 1000;
+            }
+
+            update(targetX, targetY) {
+                // 1. 逆向计算：从触须尖端开始，追随目标
+                this.segments[this.numSegments - 1].follow(targetX, targetY);
+                for (let i = this.numSegments - 2; i >= 0; i--) {
+                    this.segments[i].follow(this.segments[i + 1].x, this.segments[i + 1].y);
+                }
+
+                // 2. 根部固定：将最底部的关节锚定在基座上
+                this.segments[0].x = this.baseX;
+                this.segments[0].y = this.baseY;
+
+                // 3. 正向计算：顺推所有关节的最终实际位置
+                for (let i = 1; i < this.numSegments; i++) {
+                    this.segments[i].x = this.segments[i - 1].x + Math.cos(this.segments[i - 1].angle) * this.segments[i - 1].len;
+                    this.segments[i].y = this.segments[i - 1].y + Math.sin(this.segments[i - 1].angle) * this.segments[i - 1].len;
+                }
+            }
+
+            draw() {
+                // 绘制连接线
+                ctx.beginPath();
+                ctx.moveTo(this.segments[0].x, this.segments[0].y);
+                for (let i = 1; i < this.numSegments; i++) {
+                    ctx.lineTo(this.segments[i].x, this.segments[i].y);
+                }
+                
+                // 线条带有发光和渐变效果
+                ctx.strokeStyle = `hsla(${this.colorHue}, 100%, 65%, 0.6)`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 绘制关节节点 (越靠近尖端，节点越小越亮)
+                for (let i = 0; i < this.numSegments; i++) {
+                    let seg = this.segments[i];
+                    let radius = (1 - i / this.numSegments) * 5 + 1.5;
+                    let lightness = 50 + (i / this.numSegments) * 50; // 尖端最亮
+
+                    ctx.beginPath();
+                    ctx.arc(seg.x, seg.y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.colorHue}, 100%, ${lightness}%, 0.8)`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 初始化多根触手
+        let tentacles = [];
+        const NUM_TENTACLES = 12;
+        const SEGMENTS_PER_TENTACLE = 25;
+
+        for (let i = 0; i < NUM_TENTACLES; i++) {
+            // 色相分布：玫红到紫色渐变
+            let hue = 320 + (i / NUM_TENTACLES) * 60;
+            tentacles.push(new Tentacle(centerX, centerY, SEGMENTS_PER_TENTACLE, 15, hue));
+        }
+
+        countText.innerText = NUM_TENTACLES * SEGMENTS_PER_TENTACLE;
+
+        function animate() {
+            // 半透明遮罩产生微弱的动态残影
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.25)';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.globalCompositeOperation = 'lighter';
+
+            time += 0.02;
+
+            // 绘制中央“主脑”核心
+            let corePulse = Math.sin(time * 5) * 5;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30 + corePulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(244, 63, 94, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 更新触手
+            for (let i = 0; i < tentacles.length; i++) {
+                let t = tentacles[i];
+                let targetX, targetY;
+
+                if (mode === 'hunter') {
+                    // 主动索敌：所有触手追随鼠标，带有微小的延迟和分散感
+                    targetX = mouse.x + Math.sin(time + i) * 20;
+                    targetY = mouse.y + Math.cos(time + i) * 20;
+                } 
+                else if (mode === 'wander') {
+                    // 深海漫游：基于正弦波在空间中自由游动
+                    let angle = time + t.wanderOffset;
+                    let radius = 300 + Math.sin(time * 0.5 + i) * 100;
+                    targetX = centerX + Math.cos(angle) * radius;
+                    targetY = centerY + Math.sin(angle * 1.5) * radius;
+                } 
+                else if (mode === 'defend') {
+                    // 核心防御：紧紧包裹住中央核心
+                    let angle = (i / NUM_TENTACLES) * Math.PI * 2 + time * 0.5;
+                    targetX = centerX + Math.cos(angle) * 80;
+                    targetY = centerY + Math.sin(angle) * 80;
+                }
+
+                t.update(targetX, targetY);
+                t.draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 交互监听
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+
+        animate();
+    </script>
+</body>
+</html>

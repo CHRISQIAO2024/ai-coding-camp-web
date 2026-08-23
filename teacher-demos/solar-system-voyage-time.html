@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太阳系九大行星航行时间模拟器 (Three.js 3D可视化)</title>
+    <!-- Three.js & OrbitControls & TWEEN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <style>
+        :root {
+            --bg-dark: #050811;
+            --panel-bg: rgba(10, 16, 30, 0.82);
+            --panel-border: rgba(0, 210, 255, 0.3);
+            --accent-cyan: #00e5ff;
+            --accent-gold: #ffb703;
+            --accent-orange: #fb8500;
+            --accent-red: #e63946;
+            --accent-green: #06d6a0;
+            --text-primary: #f0f6fc;
+            --text-dim: #8b949e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            color: var(--text-primary);
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 顶部 HUD 导航栏 */
+        .top-hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.1);
+            pointer-events: auto;
+            transition: all 0.3s ease;
+        }
+
+        .title-group h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-group h1 .badge {
+            font-size: 11px;
+            background: rgba(0, 229, 255, 0.2);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .title-group p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .speed-benchmark-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: rgba(255, 183, 3, 0.12);
+            border-left: 3px solid var(--accent-gold);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--accent-gold);
+        }
+
+        /* 顶部右侧控制开关 */
+        .top-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .hud-btn {
+            background: rgba(16, 26, 46, 0.9);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .hud-btn:hover {
+            background: rgba(0, 229, 255, 0.2);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .hud-btn.active {
+            background: var(--accent-cyan);
+            color: #050811;
+            font-weight: 600;
+            border-color: var(--accent-cyan);
+        }
+
+        /* 飞行航程状态 HUD 面板 (左侧) */
+        .mission-panel {
+            position: absolute;
+            top: 135px;
+            left: 20px;
+            width: 320px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .mission-header .status-tag {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status-idle { background: rgba(139, 148, 158, 0.3); color: #c9d1d9; }
+        .status-flying { background: rgba(6, 214, 160, 0.3); color: var(--accent-green); animation: pulse 1.5s infinite; }
+        .status-arrived { background: rgba(0, 229, 255, 0.3); color: var(--accent-cyan); }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+        }
+
+        .stat-value {
+            font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .time-highlight-box {
+            background: rgba(0, 229, 255, 0.08);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+        }
+
+        .time-highlight-box .time-title {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        .time-highlight-box .time-counter {
+            font-family: "SF Mono", Consolas, monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255, 183, 3, 0.4);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0 4px 0;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-gold));
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: width 0.1s linear;
+        }
+
+        /* 航天器速度切换选择器 */
+        .speed-selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .speed-selector-label {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .speed-pills {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .speed-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .speed-pill:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .speed-pill.active {
+            background: rgba(255, 183, 3, 0.2);
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        /* 底部行星选择轮播 Dock */
+        .planet-dock {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 50px;
+            backdrop-filter: blur(15px);
+            z-index: 10;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            overflow-x: auto;
+            max-width: 95vw;
+        }
+
+        .planet-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid transparent;
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .planet-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .planet-btn:hover {
+            background: rgba(0, 229, 255, 0.15);
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+
+        .planet-btn.active {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.4), rgba(10, 16, 30, 0.8));
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+        }
+
+        /* 右侧飞行控制 & 行星档案面板 */
+        .right-panel {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            width: 330px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+
+        .action-btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .launch-btn {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #00e5ff, #0077b6);
+            color: #050811;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+            transition: all 0.2s;
+        }
+
+        .launch-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
+        }
+
+        .launch-btn:active {
+            transform: scale(0.98);
+        }
+
+        .info-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .planet-bio {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #c9d1d9;
+            margin-top: 6px;
+        }
+
+        /* 全星系对比模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-card {
+            width: 90%;
+            max-width: 850px;
+            max-height: 85vh;
+            background: var(--panel-bg);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 16px;
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(0, 229, 255, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .modal-table th {
+            padding: 10px 12px;
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .modal-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .modal-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* 3D 浮动标签与提示 */
+        .tooltip-hud {
+            position: absolute;
+            background: rgba(5, 8, 17, 0.85);
+            border: 1px solid var(--accent-cyan);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            display: none;
+            z-index: 20;
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+        }
+
+        /* 航行模拟中 电影模式暗角 */
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        @media (max-width: 900px) {
+            .mission-panel { display: none; }
+            .right-panel { width: 280px; }
+            .top-hud { flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+    <div class="vignette"></div>
+    <div id="planet-tooltip" class="tooltip-hud"></div>
+
+    <!-- 顶部 HUD -->
+    <div class="top-hud">
+        <div class="hud-card title-group">
+            <h1>
+                🚀 地球出发 · 太阳系航行时空模拟器
+                <span class="badge">THREE.JS 3D</span>
+            </h1>
+            <p>基于人类航天飞机近地轨道最高巡航极速（28,000 km/h · 约 7.78 km/s）实时模拟计算</p>
+            <div class="speed-benchmark-banner">
+                ⚡ 航天基准航速：<strong>28,000 km/h (约 67.2 万公里/天)</strong> | 标靶：太阳系 9 大天体
+            </div>
+        </div>
+
+        <div class="top-controls">
+            <button class="hud-btn" id="btn-toggle-orbits">🪐 显示/隐藏轨道</button>
+            <button class="hud-btn" id="btn-camera-view">🎥 切换视角</button>
+            <button class="hud-btn" id="btn-open-matrix">📊 9大行星耗时总表</button>
+            <button class="hud-btn" id="btn-toggle-audio">🔊 音效: 开</button>
+        </div>
+    </div>
+
+    <!-- 左侧航行任务监控 HUD -->
+    <div class="mission-panel hud-card" id="mission-panel">
+        <div class="mission-header">
+            <span style="font-weight: 600; font-size: 14px;">🎯 航行遥测仪表盘</span>
+            <span class="status-tag status-idle" id="mission-status-tag">待命发射</span>
+        </div>
+
+        <div class="stat-row">
+            <span class="stat-label">始发基地:</span>
+            <span class="stat-value" style="color:#06d6a0;">地球 (Earth · 1.00 AU)</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">目标天体:</span>
+            <span class="stat-value" id="hud-target-name">火星 (Mars)</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">直线/轨道均距:</span>
+            <span class="stat-value" id="hud-target-dist">78,340,000 km</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">当前计算航速:</span>
+            <span class="stat-value" id="hud-current-speed">28,000 km/h</span>
+        </div>
+
+        <!-- 耗时高亮计算框 -->
+        <div class="time-highlight-box">
+            <div class="time-title">⏱️ 航天飞机直飞所需总时长</div>
+            <div class="time-counter" id="hud-total-time-display">116.6 天 (2,797 小时)</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;" id="hud-year-breakdown">≈ 0.32 年 / 3.8 个月</div>
+        </div>
+
+        <!-- 模拟飞行进度与已耗时间 -->
+        <div style="margin-top: 4px;">
+            <div class="stat-row" style="font-size: 12px; margin-bottom: 2px;">
+                <span class="stat-label">航程飞行进度:</span>
+                <span class="stat-value" id="hud-progress-percent">0.0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="hud-progress-bar"></div>
+            </div>
+            <div class="stat-row" style="font-size: 11px; margin-top: 4px;">
+                <span class="stat-label">已航行里程:</span>
+                <span class="stat-value" id="hud-traveled-km">0 km</span>
+            </div>
+            <div class="stat-row" style="font-size: 11px;">
+                <span class="stat-label">模拟已过时间:</span>
+                <span class="stat-value" id="hud-elapsed-time">0 天 0 小时</span>
+            </div>
+        </div>
+
+        <!-- 对比航速切换选择器 -->
+        <div class="speed-selector-group">
+            <span class="speed-selector-label">切换航天器基准测速：</span>
+            <div class="speed-pills">
+                <div class="speed-pill active" data-speed="28000" data-name="航天飞机">航天飞机 (2.8万km/h)</div>
+                <div class="speed-pill" data-speed="58536" data-name="新视野号">新视野号 (5.85万km/h)</div>
+                <div class="speed-pill" data-speed="690000" data-name="帕克太阳探测器">帕克探测器 (69万km/h)</div>
+                <div class="speed-pill" data-speed="1079252848" data-name="光速">光速 (30万km/s)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧控制 & 行星资料卡 -->
+    <div class="right-panel">
+        <div class="hud-card">
+            <div class="info-section-title">🕹️ 航线操控台</div>
+            <div class="action-btn-group">
+                <button class="launch-btn" id="btn-launch-shuttle">🚀 发射航天飞机前往目标</button>
+                <button class="hud-btn" id="btn-reset-flight">🔄 重置返航</button>
+                <button class="hud-btn" id="btn-speed-up">⏩ 加速飞行 (1x)</button>
+            </div>
+        </div>
+
+        <div class="hud-card" id="planet-bio-card">
+            <div class="info-section-title">
+                <span id="bio-planet-icon">🪐</span>
+                <span id="bio-planet-title">火星 (Mars) 探索档案</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">天体属性:</span>
+                <span class="stat-value" id="bio-planet-type">类地行星 (第4颗)</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">太阳轨道半长轴:</span>
+                <span class="stat-value" id="bio-sun-dist">1.52 AU (2.28 亿 km)</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">公转周期:</span>
+                <span class="stat-value" id="bio-orbital-period">687 地球日</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">表面平均温度:</span>
+                <span class="stat-value" id="bio-temperature">-63 ℃</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">往返航天飞机耗时:</span>
+                <span class="stat-value" id="bio-roundtrip" style="color:var(--accent-gold);">约 233 天 (单程×2)</span>
+            </div>
+            <div class="planet-bio" id="bio-planet-desc">
+                火星是太阳系第四颗行星，表面被氧化铁沙尘覆盖呈现红褐色。如果搭乘人类目前最高时速约 2.8 万公里的航天飞机，即使在最理想的霍曼转移窗口平均也需要将近 4 个月持续飞行才能抵达。
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部 9 大行星轮播切换 Dock -->
+    <div class="planet-dock" id="planet-dock"></div>
+
+    <!-- 9大行星全景对比表格模态框 -->
+    <div class="modal-overlay" id="matrix-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 style="font-size: 18px; color: var(--accent-cyan);">📊 太阳系 9 大行星航行时间全景对照表</h2>
+                <button class="close-btn" id="btn-close-modal">✕</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 14px;">
+                * 距离基于地球与各行星在轨道运行中的平均直飞测算距离。航天飞机极速基准：<strong>28,000 km/h (7.78 km/s)</strong>。
+            </p>
+            <table class="modal-table">
+                <thead>
+                    <tr>
+                        <th>天体名称</th>
+                        <th>天体类型</th>
+                        <th>相对地球均距</th>
+                        <th>航天飞机用时 (小时)</th>
+                        <th>航天飞机用时 (天数)</th>
+                        <th>换算年份</th>
+                        <th>光速耗时</th>
+                    </tr>
+                </thead>
+                <tbody id="matrix-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        /* 1. 太阳系 9 大行星天体数据体系 */
+        const PLANETS_DATA = [
+            {
+                id: "mercury",
+                name: "水星",
+                en: "Mercury",
+                type: "类地行星",
+                color: "#a8a29e",
+                orbitRadius: 28,
+                realDistKm: 91690000,
+                sunDistAU: 0.387,
+                size: 1.4,
+                rotationSpeed: 0.004,
+                orbitSpeed: 0.04,
+                orbitalPeriod: "88 地球日",
+                temp: "167 ℃ (夜间-180℃)",
+                desc: "水星是离太阳最近的行星，昼夜温差剧烈。搭乘航天飞机飞抵水星需约 136.4 天（4.5 个月）。"
+            },
+            {
+                id: "venus",
+                name: "金星",
+                en: "Venus",
+                type: "类地行星",
+                color: "#eab308",
+                orbitRadius: 42,
+                realDistKm: 41400000,
+                sunDistAU: 0.723,
+                size: 2.2,
+                rotationSpeed: -0.002,
+                orbitSpeed: 0.015,
+                orbitalPeriod: "225 地球日",
+                temp: "464 ℃ (温室效应)",
+                desc: "金星是地球的邻近行星，拥有极厚二氧化碳大气。作为对地最近行星，航天飞机直飞约需 61.6 天（约 2 个月）。"
+            },
+            {
+                id: "earth",
+                name: "地球",
+                en: "Earth",
+                type: "母港行星",
+                color: "#38bdf8",
+                orbitRadius: 60,
+                realDistKm: 0,
+                sunDistAU: 1.00,
+                size: 2.4,
+                rotationSpeed: 0.01,
+                orbitSpeed: 0.01,
+                orbitalPeriod: "365.25 地球日",
+                temp: "15 ℃ (平均)",
+                desc: "人类文明发祥地与始发航天母港，拥有液态水圈与保护性磁层。"
+            },
+            {
+                id: "mars",
+                name: "火星",
+                en: "Mars",
+                type: "类地行星",
+                color: "#ef4444",
+                orbitRadius: 82,
+                realDistKm: 78340000,
+                sunDistAU: 1.524,
+                size: 1.8,
+                rotationSpeed: 0.009,
+                orbitSpeed: 0.008,
+                orbitalPeriod: "687 地球日",
+                temp: "-63 ℃ (干冰极冠)",
+                desc: "深空探测首选目的地。表面布满氧化铁与巨大峡谷。航天飞机单程需飞行 116.6 天（近 4 个月）。"
+            },
+            {
+                id: "jupiter",
+                name: "木星",
+                en: "Jupiter",
+                type: "气态巨行星",
+                color: "#f97316",
+                orbitRadius: 120,
+                realDistKm: 628730000,
+                sunDistAU: 5.204,
+                size: 6.5,
+                rotationSpeed: 0.02,
+                orbitSpeed: 0.002,
+                orbitalPeriod: "11.86 地球年",
+                temp: "-110 ℃",
+                desc: "太阳系最大行星，质量为其他行星总和的2.5倍。航天飞机飞抵木星需耗时 2.56 年（935.6 天）。"
+            },
+            {
+                id: "saturn",
+                name: "土星",
+                en: "Saturn",
+                type: "气态巨行星",
+                color: "#fde047",
+                orbitRadius: 165,
+                realDistKm: 1275000000,
+                sunDistAU: 9.582,
+                size: 5.2,
+                hasRings: true,
+                rotationSpeed: 0.018,
+                orbitSpeed: 0.0009,
+                orbitalPeriod: "29.45 地球年",
+                temp: "-140 ℃",
+                desc: "拥有壮丽冰晶光环系统的气态巨星。航天飞机飞往土星需 5.19 年（约 1,897 天）。"
+            },
+            {
+                id: "uranus",
+                name: "天王星",
+                en: "Uranus",
+                type: "冰巨行星",
+                color: "#67e8f9",
+                orbitRadius: 215,
+                realDistKm: 2723950000,
+                sunDistAU: 19.20,
+                size: 3.8,
+                hasTiltRings: true,
+                rotationSpeed: 0.012,
+                orbitSpeed: 0.0004,
+                orbitalPeriod: "84.02 地球年",
+                temp: "-195 ℃",
+                desc: "横躺自转的幽蓝冰巨星，富含甲烷水冰。航天飞机直飞耗时高达 11.10 年（超 4,053 天）。"
+            },
+            {
+                id: "neptune",
+                name: "海王星",
+                en: "Neptune",
+                type: "冰巨行星",
+                color: "#3b82f6",
+                orbitRadius: 260,
+                realDistKm: 4351400000,
+                sunDistAU: 30.05,
+                size: 3.6,
+                rotationSpeed: 0.011,
+                orbitSpeed: 0.0002,
+                orbitalPeriod: "164.79 地球年",
+                temp: "-200 ℃",
+                desc: "太阳系最外侧冰巨星，拥有时速超2000公里的狂暴风暴。航天飞机飞抵需 17.73 年（6,475 天）。"
+            },
+            {
+                id: "pluto",
+                name: "冥王星",
+                en: "Pluto",
+                type: "矮行星 / 柯伊伯带天体",
+                color: "#d6d3d1",
+                orbitRadius: 305,
+                realDistKm: 5750000000,
+                sunDistAU: 39.48,
+                size: 1.2,
+                rotationSpeed: 0.003,
+                orbitSpeed: 0.0001,
+                orbitalPeriod: "247.9 地球年",
+                temp: "-225 ℃",
+                desc: "经典柯伊伯带天体，拥有著名的汤博区心形冰原。航天飞机直飞需漫长的 23.43 年（8,556 天）。"
+            }
+        ];
+
+        /* 2. WebGL Three.js 场景构建 */
+        let scene, camera, renderer, controls;
+        let sunMesh, sunCorona, earthMesh, shuttleGroup, shuttleTrailLine;
+        let planetMeshes = {};
+        let orbitLines = [];
+        let starsParticles;
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        let currentSpeedKmH = 28000;
+        let selectedPlanet = PLANETS_DATA.find(p => p.id === "mars");
+        let isSimulating = false;
+        let simProgress = 0;
+        let simSpeedMultiplier = 1;
+        let flightCurve = null;
+        let cameraMode = 'overview';
+        let showOrbits = true;
+
+        const container = document.getElementById('webgl-container');
+
+        function playSfx(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                if (type === 'launch') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 1.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+                    osc.start(now); osc.stop(now + 1.2);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'arrive') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    osc.frequency.setValueAtTime(783.99, now + 0.4);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                    osc.start(now); osc.stop(now + 0.8);
+                }
+            } catch (e) { console.warn(e); }
+        }
+
+        function createProceduralTexture(type, colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            if (type === 'sun') {
+                const grad = ctx.createRadialGradient(256, 128, 10, 256, 128, 250);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.2, '#ffdd55');
+                grad.addColorStop(0.6, '#ff6600');
+                grad.addColorStop(1, '#cc1100');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 256);
+                for (let i = 0; i < 400; i++) {
+                    ctx.fillStyle = `rgba(255, ${Math.random()*150+100}, 0, ${Math.random()*0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(Math.random()*512, Math.random()*256, Math.random()*12, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            } else if (type === 'earth') {
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(0, 0, 512, 256);
+                ctx.fillStyle = '#15803d';
+                for (let i = 0; i < 18; i++) {
+                    ctx.beginPath();
+                    ctx.arc(Math.random()*512, Math.random()*200+28, Math.random()*45+20, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                for (let i = 0; i < 30; i++) ctx.fillRect(Math.random()*512, Math.random()*256, Math.random()*60+20, Math.random()*8+2);
+            } else if (type === 'jupiter') {
+                const bands = ['#d97706', '#fef3c7', '#b45309', '#fde68a', '#92400e', '#fed7aa'];
+                for (let y = 0; y < 256; y += 8) {
+                    ctx.fillStyle = bands[Math.floor(Math.random() * bands.length)];
+                    ctx.fillRect(0, y, 512, 8 + Math.random()*6);
+                }
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath(); ctx.ellipse(320, 160, 35, 20, 0, 0, Math.PI*2); ctx.fill();
+            } else if (type === 'mars') {
+                ctx.fillStyle = '#c2410c'; ctx.fillRect(0, 0, 512, 256);
+                ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 20); ctx.fillRect(0, 236, 512, 20);
+                ctx.fillStyle = '#7c2d12';
+                for (let i = 0; i < 25; i++) { ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*200+28, Math.random()*25+5, 0, Math.PI*2); ctx.fill(); }
+            } else if (type === 'pluto') {
+                ctx.fillStyle = '#78716c'; ctx.fillRect(0, 0, 512, 256);
+                ctx.fillStyle = '#f5f5f4';
+                ctx.beginPath(); ctx.arc(240, 130, 22, 0, Math.PI*2); ctx.arc(270, 130, 22, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillStyle = colorHex || '#888888'; ctx.fillRect(0, 0, 512, 256);
+                for (let i = 0; i < 40; i++) { ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*256, Math.random()*15, 0, Math.PI*2); ctx.fill(); }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createRingTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 256, 0);
+            grad.addColorStop(0.0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.2, 'rgba(230, 200, 140, 0.2)');
+            grad.addColorStop(0.5, 'rgba(250, 220, 160, 0.9)');
+            grad.addColorStop(0.7, 'rgba(100, 80, 50, 0.1)');
+            grad.addColorStop(0.85, 'rgba(220, 190, 130, 0.7)');
+            grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 1);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050811, 0.0012);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(0, 160, 240);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 800;
+            controls.minDistance = 15;
+
+            const ambientLight = new THREE.AmbientLight(0x334466, 0.9);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.PointLight(0xffffff, 2.2, 1200, 0.5);
+            sunLight.position.set(0, 0, 0);
+            scene.add(sunLight);
+
+            createStarfield();
+            createSun();
+            createPlanetarySystem();
+            createSpaceShuttle();
+
+            window.addEventListener('resize', onWindowResize);
+            setupRaycaster();
+        }
+
+        function createStarfield() {
+            const starsCount = 4500;
+            const starGeo = new THREE.BufferGeometry();
+            const positions = new Float32Array(starsCount * 3);
+            const colors = new Float32Array(starsCount * 3);
+
+            for (let i = 0; i < starsCount * 3; i += 3) {
+                const r = 600 + Math.random() * 600;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.random() * 2 - 1);
+                positions[i] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i+2] = r * Math.cos(phi);
+
+                const c = Math.random();
+                if (c > 0.8) { colors[i] = 0.6; colors[i+1] = 0.8; colors[i+2] = 1.0; }
+                else if (c > 0.6) { colors[i] = 1.0; colors[i+1] = 0.8; colors[i+2] = 0.4; }
+                else { colors[i] = 0.9; colors[i+1] = 0.9; colors[i+2] = 0.9; }
+            }
+
+            starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            starsParticles = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 2.2, vertexColors: true, transparent: true, opacity: 0.85 }));
+            scene.add(starsParticles);
+        }
+
+        function createSun() {
+            sunMesh = new THREE.Mesh(new THREE.SphereGeometry(12, 48, 48), new THREE.MeshBasicMaterial({ map: createProceduralTexture('sun') }));
+            scene.add(sunMesh);
+            sunCorona = new THREE.Mesh(new THREE.SphereGeometry(14.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.25, side: THREE.BackSide }));
+            scene.add(sunCorona);
+        }
+
+        function createPlanetarySystem() {
+            PLANETS_DATA.forEach((data) => {
+                const orbitRing = new THREE.Mesh(new THREE.RingGeometry(data.orbitRadius - 0.15, data.orbitRadius + 0.15, 128), new THREE.MeshBasicMaterial({ color: 0x00d2ff, side: THREE.DoubleSide, transparent: true, opacity: 0.18 }));
+                orbitRing.rotation.x = Math.PI / 2;
+                scene.add(orbitRing);
+                orbitLines.push(orbitRing);
+
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size, 32, 32), new THREE.MeshStandardMaterial({ map: createProceduralTexture(data.id, data.color), roughness: 0.7, metalness: 0.1 }));
+                mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData = data;
+
+                if (data.hasRings) {
+                    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(data.size * 1.4, data.size * 2.6, 64), new THREE.MeshStandardMaterial({ map: createRingTexture(), side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+                    ringMesh.rotation.x = Math.PI / 2 + 0.3; mesh.add(ringMesh);
+                }
+                if (data.hasTiltRings) {
+                    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(data.size * 1.3, data.size * 1.8, 64), new THREE.MeshBasicMaterial({ color: 0xa5f3fc, side: THREE.DoubleSide, transparent: true, opacity: 0.4 }));
+                    ringMesh.rotation.x = Math.PI / 2 + 1.2; mesh.add(ringMesh);
+                }
+                if (data.id === 'earth') {
+                    earthMesh = mesh;
+                    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshStandardMaterial({ color: 0xd6d3d1 }));
+                    moonMesh.position.set(4.5, 0, 0); mesh.add(moonMesh);
+                }
+
+                const startAngle = Math.random() * Math.PI * 2;
+                mesh.position.set(Math.cos(startAngle) * data.orbitRadius, 0, Math.sin(startAngle) * data.orbitRadius);
+                scene.add(mesh);
+                planetMeshes[data.id] = { mesh: mesh, data: data, angle: startAngle };
+            });
+        }
+
+        function createSpaceShuttle() {
+            shuttleGroup = new THREE.Group();
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 3.2, 16), whiteMat);
+            body.rotation.x = Math.PI / 2; shuttleGroup.add(body);
+
+            const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 16), blackMat);
+            nose.position.z = 2.0; nose.rotation.x = Math.PI / 2; shuttleGroup.add(nose);
+
+            const wingShape = new THREE.Shape();
+            wingShape.moveTo(0, 0); wingShape.lineTo(2.4, -1.8); wingShape.lineTo(2.4, -2.4); wingShape.lineTo(-2.4, -2.4); wingShape.lineTo(-2.4, -1.8); wingShape.closePath();
+            const wing = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: 0.12, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.04, bevelThickness: 0.04 }), whiteMat);
+            wing.position.set(0, -0.2, 0.4); wing.rotation.x = Math.PI / 2; shuttleGroup.add(wing);
+
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.5, 1.2), whiteMat);
+            tail.position.set(0, 0.8, -1.0); shuttleGroup.add(tail);
+
+            for (let i = -1; i <= 1; i++) {
+                const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.5, 8), blackMat);
+                nozzle.position.set(i * 0.35, (i === 0 ? 0.2 : -0.15), -1.8);
+                nozzle.rotation.x = Math.PI / 2; shuttleGroup.add(nozzle);
+
+                const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.2, 8), new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.8 }));
+                flame.position.set(i * 0.35, (i === 0 ? 0.2 : -0.15), -2.4);
+                flame.rotation.x = -Math.PI / 2; shuttleGroup.add(flame);
+            }
+
+            shuttleGroup.scale.set(0.7, 0.7, 0.7);
+            const earthPos = planetMeshes['earth'].mesh.position;
+            shuttleGroup.position.set(earthPos.x + 4, earthPos.y + 1, earthPos.z);
+            scene.add(shuttleGroup);
+
+            const trailGeo = new THREE.BufferGeometry();
+            trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(200 * 3), 3));
+            shuttleTrailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75, linewidth: 2 }));
+            scene.add(shuttleTrailLine);
+        }
+
+        /* 3. 耗时计算与控制 */
+        function calculateTravelTime(distKm, speedKmH) {
+            const totalHours = distKm / speedKmH;
+            const days = totalHours / 24;
+            const years = days / 365.25;
+            return { totalHours, days, years };
+        }
+
+        function formatTimeDisplay(timeObj) {
+            if (timeObj.totalHours < 24) return `${timeObj.totalHours.toFixed(1)} 小时`;
+            if (timeObj.days < 365) return `${timeObj.days.toFixed(1)} 天 (${Math.round(timeObj.totalHours).toLocaleString()} 小时)`;
+            return `${timeObj.years.toFixed(2)} 年 (${Math.round(timeObj.days).toLocaleString()} 天)`;
+        }
+
+        function updateHUD(targetPlanet) {
+            if (!targetPlanet) return;
+            selectedPlanet = targetPlanet;
+
+            document.getElementById('hud-target-name').innerText = `${targetPlanet.name} (${targetPlanet.en})`;
+            document.getElementById('hud-target-dist').innerText = `${targetPlanet.realDistKm.toLocaleString()} km (${(targetPlanet.realDistKm / 149597870.7).toFixed(2)} AU)`;
+            document.getElementById('hud-current-speed').innerText = `${currentSpeedKmH.toLocaleString()} km/h`;
+
+            const calc = calculateTravelTime(targetPlanet.realDistKm, currentSpeedKmH);
+            document.getElementById('hud-total-time-display').innerText = formatTimeDisplay(calc);
+            document.getElementById('hud-year-breakdown').innerText = `≈ ${calc.years.toFixed(2)} 年 / ${(calc.days / 30.4).toFixed(1)} 个月 (${calc.days.toFixed(1)} 天)`;
+
+            document.getElementById('bio-planet-title').innerText = `${targetPlanet.name} (${targetPlanet.en}) 探索档案`;
+            document.getElementById('bio-planet-type').innerText = targetPlanet.type;
+            document.getElementById('bio-sun-dist').innerText = `${targetPlanet.sunDistAU} AU (${(targetPlanet.sunDistAU * 1.496e8 / 1e8).toFixed(2)} 亿 km)`;
+            document.getElementById('bio-orbital-period').innerText = targetPlanet.orbitalPeriod;
+            document.getElementById('bio-temperature').innerText = targetPlanet.temp;
+            document.getElementById('bio-roundtrip').innerText = `约 ${(calc.days * 2).toFixed(1)} 天 / ${(calc.years * 2).toFixed(2)} 年 (单程×2)`;
+            document.getElementById('bio-planet-desc').innerText = targetPlanet.desc;
+
+            document.querySelectorAll('.planet-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.id === targetPlanet.id);
+            });
+        }
+
+        function startLaunchMission() {
+            if (isSimulating) return;
+            if (selectedPlanet.id === 'earth') {
+                alert("当前已在始发地：地球母港！请选择其他 8 颗目标行星开始航行。");
+                return;
+            }
+            playSfx('launch');
+            isSimulating = true;
+            simProgress = 0;
+
+            const statusTag = document.getElementById('mission-status-tag');
+            statusTag.className = "status-tag status-flying";
+            statusTag.innerText = "🚀 亚轨道加速前往中";
+
+            const earthPos = planetMeshes['earth'].mesh.position.clone();
+            const targetPos = planetMeshes[selectedPlanet.id].mesh.position.clone();
+            const midPoint = new THREE.Vector3().addVectors(earthPos, targetPos).multiplyScalar(0.5);
+            midPoint.y += 18; midPoint.x += 10;
+
+            flightCurve = new THREE.QuadraticBezierCurve3(earthPos, midPoint, targetPos);
+            shuttleTrailLine.geometry.setFromPoints(flightCurve.getPoints(100));
+            shuttleTrailLine.visible = true;
+
+            cameraMode = 'follow';
+            document.getElementById('btn-camera-view').innerText = "🎥 视角: 飞船追踪";
+        }
+
+        function resetMission() {
+            isSimulating = false;
+            simProgress = 0;
+            flightCurve = null;
+            shuttleTrailLine.visible = false;
+
+            const earthPos = planetMeshes['earth'].mesh.position.clone();
+            shuttleGroup.position.set(earthPos.x + 3.5, earthPos.y + 0.5, earthPos.z);
+            shuttleGroup.lookAt(earthPos.x + 10, earthPos.y, earthPos.z);
+
+            document.getElementById('mission-status-tag').className = "status-tag status-idle";
+            document.getElementById('mission-status-tag').innerText = "待命发射";
+            document.getElementById('hud-progress-percent').innerText = "0.0%";
+            document.getElementById('hud-progress-bar').style.width = "0%";
+            document.getElementById('hud-traveled-km').innerText = "0 km";
+            document.getElementById('hud-elapsed-time').innerText = "0 天 0 小时";
+
+            cameraMode = 'overview';
+            document.getElementById('btn-camera-view').innerText = "🎥 视角: 太阳系全景";
+            new TWEEN.Tween(camera.position).to({ x: 0, y: 160, z: 240 }, 1000).easing(TWEEN.Easing.Cubic.Out).start();
+        }
+
+        /* 4. UI交互事件绑定 */
+        function setupUI() {
+            const dock = document.getElementById('planet-dock');
+            PLANETS_DATA.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = `planet-btn ${p.id === selectedPlanet.id ? 'active' : ''}`;
+                btn.dataset.id = p.id;
+                btn.innerHTML = `<span class="planet-dot" style="background:${p.color}"></span>${p.name}`;
+                btn.addEventListener('click', () => { playSfx('click'); selectTargetPlanet(p); });
+                dock.appendChild(btn);
+            });
+
+            const tableBody = document.getElementById('matrix-table-body');
+            PLANETS_DATA.filter(p => p.id !== 'earth').forEach(p => {
+                const c = calculateTravelTime(p.realDistKm, 28000);
+                const lightMins = (p.realDistKm / 299792.458 / 60).toFixed(1);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${p.name}</strong> (${p.en})</td>
+                    <td><span style="color:var(--text-dim);">${p.type}</span></td>
+                    <td style="color:var(--accent-cyan); font-family:monospace;">${p.realDistKm.toLocaleString()} km</td>
+                    <td style="font-family:monospace;">${Math.round(c.totalHours).toLocaleString()} h</td>
+                    <td style="color:var(--accent-gold); font-weight:600; font-family:monospace;">${c.days.toFixed(1)} 天</td>
+                    <td><strong>${c.years.toFixed(2)} 年</strong></td>
+                    <td style="color:#06d6a0;">${lightMins} 分钟</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('btn-launch-shuttle').addEventListener('click', startLaunchMission);
+            document.getElementById('btn-reset-flight').addEventListener('click', resetMission);
+
+            document.getElementById('btn-speed-up').addEventListener('click', () => {
+                playSfx('click');
+                simSpeedMultiplier = simSpeedMultiplier === 1 ? 3 : simSpeedMultiplier === 3 ? 10 : simSpeedMultiplier === 10 ? 50 : 1;
+                document.getElementById('btn-speed-up').innerText = `⏩ 加速飞行 (${simSpeedMultiplier}x)`;
+            });
+
+            document.getElementById('btn-toggle-orbits').addEventListener('click', () => {
+                showOrbits = !showOrbits;
+                orbitLines.forEach(l => l.visible = showOrbits);
+                document.getElementById('btn-toggle-orbits').classList.toggle('active', showOrbits);
+            });
+
+            document.getElementById('btn-camera-view').addEventListener('click', () => {
+                playSfx('click');
+                if (cameraMode === 'overview') {
+                    cameraMode = 'follow';
+                    document.getElementById('btn-camera-view').innerText = "🎥 视角: 飞船追踪";
+                } else if (cameraMode === 'follow') {
+                    cameraMode = 'planet';
+                    document.getElementById('btn-camera-view').innerText = "🎥 视角: 目标特写";
+                } else {
+                    cameraMode = 'overview';
+                    document.getElementById('btn-camera-view').innerText = "🎥 视角: 太阳系全景";
+                    new TWEEN.Tween(camera.position).to({ x: 0, y: 160, z: 240 }, 800).easing(TWEEN.Easing.Cubic.Out).start();
+                }
+            });
+
+            document.getElementById('btn-open-matrix').addEventListener('click', () => {
+                playSfx('click');
+                document.getElementById('matrix-modal').style.display = 'flex';
+            });
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('matrix-modal').style.display = 'none';
+            });
+
+            document.getElementById('btn-toggle-audio').addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                document.getElementById('btn-toggle-audio').innerText = soundEnabled ? "🔊 音效: 开" : "🔇 音效: 关";
+                document.getElementById('btn-toggle-audio').classList.toggle('active', soundEnabled);
+            });
+
+            document.querySelectorAll('.speed-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    playSfx('click');
+                    document.querySelectorAll('.speed-pill').forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+                    currentSpeedKmH = parseFloat(pill.dataset.speed);
+                    updateHUD(selectedPlanet);
+                });
+            });
+        }
+
+        function selectTargetPlanet(p) {
+            selectedPlanet = p;
+            updateHUD(p);
+            const targetMesh = planetMeshes[p.id].mesh;
+            const targetWorldPos = targetMesh.position.clone();
+
+            new TWEEN.Tween(controls.target).to(targetWorldPos, 800).easing(TWEEN.Easing.Cubic.Out).start();
+            if (!isSimulating) {
+                new TWEEN.Tween(camera.position).to({
+                    x: targetWorldPos.x + p.size * 5 + 10,
+                    y: targetWorldPos.y + p.size * 3 + 6,
+                    z: targetWorldPos.z + p.size * 5 + 10
+                }, 1000).easing(TWEEN.Easing.Cubic.Out).start();
+            }
+        }
+
+        function setupRaycaster() {
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            const tooltip = document.getElementById('planet-tooltip');
+
+            window.addEventListener('mousemove', (event) => {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(Object.values(planetMeshes).map(i => i.mesh));
+
+                if (intersects.length > 0) {
+                    const pData = intersects[0].object.userData;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = `${event.clientX}px`;
+                    tooltip.style.top = `${event.clientY - 15}px`;
+                    tooltip.innerHTML = `🪐 <strong>${pData.name}</strong> (${pData.en})<br><span style="color:var(--text-dim);font-size:10px;">点击锁定航行标靶</span>`;
+                    document.body.style.cursor = 'pointer';
+                } else {
+                    tooltip.style.display = 'none';
+                    document.body.style.cursor = 'default';
+                }
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target.closest('.hud-card, .planet-dock, .top-hud, .modal-card')) return;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(Object.values(planetMeshes).map(i => i.mesh));
+                if (intersects.length > 0) {
+                    playSfx('click');
+                    selectTargetPlanet(intersects[0].object.userData);
+                }
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* 5. 渲染循环 */
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            const delta = clock.getDelta();
+
+            if (sunMesh) sunMesh.rotation.y += 0.002;
+            if (sunCorona) sunCorona.rotation.z += 0.001;
+
+            PLANETS_DATA.forEach(p => {
+                const item = planetMeshes[p.id];
+                if (item) {
+                    item.mesh.rotation.y += p.rotationSpeed;
+                    item.angle += p.orbitSpeed * 0.08;
+                    item.mesh.position.x = Math.cos(item.angle) * p.orbitRadius;
+                    item.mesh.position.z = Math.sin(item.angle) * p.orbitRadius;
+                }
+            });
+
+            if (isSimulating && flightCurve) {
+                simProgress += delta * 0.06 * simSpeedMultiplier;
+                if (simProgress >= 1.0) {
+                    simProgress = 1.0;
+                    isSimulating = false;
+                    playSfx('arrive');
+                    const statusTag = document.getElementById('mission-status-tag');
+                    statusTag.className = "status-tag status-arrived";
+                    statusTag.innerText = `🏁 已抵达 ${selectedPlanet.name} 轨道`;
+                    cameraMode = 'planet';
+                    document.getElementById('btn-camera-view').innerText = "🎥 视角: 目标特写";
+                }
+
+                const currentPos = flightCurve.getPoint(simProgress);
+                const nextPos = flightCurve.getPoint(Math.min(simProgress + 0.01, 1.0));
+                shuttleGroup.position.copy(currentPos);
+                shuttleGroup.lookAt(nextPos);
+
+                const traveledKm = selectedPlanet.realDistKm * simProgress;
+                const calcTotal = calculateTravelTime(selectedPlanet.realDistKm, currentSpeedKmH);
+                const elapsedDays = calcTotal.days * simProgress;
+                const elapsedHours = (calcTotal.totalHours * simProgress) % 24;
+
+                document.getElementById('hud-progress-percent').innerText = `${(simProgress * 100).toFixed(1)}%`;
+                document.getElementById('hud-progress-bar').style.width = `${simProgress * 100}%`;
+                document.getElementById('hud-traveled-km').innerText = `${Math.round(traveledKm).toLocaleString()} km`;
+                document.getElementById('hud-elapsed-time').innerText = `${Math.floor(elapsedDays)} 天 ${Math.floor(elapsedHours)} 小时`;
+            }
+
+            if (cameraMode === 'follow' && shuttleGroup) {
+                const relativeCamOffset = new THREE.Vector3(0, 5, -14);
+                const camPos = relativeCamOffset.applyMatrix4(shuttleGroup.matrixWorld);
+                camera.position.lerp(camPos, 0.08);
+                controls.target.lerp(shuttleGroup.position, 0.1);
+            } else if (cameraMode === 'planet' && selectedPlanet) {
+                const targetMesh = planetMeshes[selectedPlanet.id].mesh;
+                controls.target.lerp(targetMesh.position, 0.08);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThree();
+            setupUI();
+            updateHUD(selectedPlanet);
+            animate();
+        });
+    </script>
+</body>
+</html>

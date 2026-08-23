@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>混沌边缘 · 奇异吸引子流场</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #020204;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 极简参数控制台 */
+        .parameter-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(5, 10, 15, 0.5);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 28px;
+            border-radius: 100px;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.1);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 10px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        button:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        button.active {
+            color: #fff;
+            background: rgba(168, 85, 247, 0.15);
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+            text-shadow: 0 0 8px #a855f7;
+        }
+
+        .hud-telemetry {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(168, 85, 247, 0.6);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            pointer-events: none;
+            line-height: 2;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+        }
+
+        .hud-telemetry span { color: #f8fafc; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="hud-telemetry">
+        SYSTEM_EVOLUTION: <span id="mode-text">量子纠缠 (QUANTUM)</span><br>
+        PARTICLE_COUNT: <span>20,000</span><br>
+        VECTOR_PARAMS: <span id="params-text">A:0 B:0 C:0 D:0</span><br>
+        [ 移动鼠标以注入混沌扰动 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+
+    <div class="parameter-panel">
+        <button class="active" onclick="setAttractor(1.4, -2.3, 2.4, -2.1, '量子纠缠', this)">量子纠缠</button>
+        <button onclick="setAttractor(2.0, -1.8, 1.5, 1.2, '神经突触', this)">神经突触</button>
+        <button onclick="setAttractor(-1.7, 1.8, -1.9, -1.5, '星系坍缩', this)">星系坍缩</button>
+        <button onclick="setAttractor(1.1, 2.2, -1.2, 1.5, '涡流涌现', this)">涡流涌现</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const modeText = document.getElementById('mode-text');
+        const paramsText = document.getElementById('params-text');
+
+        let width, height;
+        const NUM_PARTICLES = 20000;
+        let particles = [];
+        
+        // 吸引子方程的数学参数 (Clifford / Peter de Jong 变体)
+        let targetA = 1.4, targetB = -2.3, targetC = 2.4, targetD = -2.1;
+        let currA = 1.4, currB = -2.3, currC = 2.4, currD = -2.1;
+
+        // 视图缩放系数
+        let scale = 150;
+        let mouse = { x: 0, y: 0, normalizedX: 0, normalizedY: 0 };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            // 根据屏幕大小动态调整缩放
+            scale = Math.min(width, height) / 6;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function setAttractor(a, b, c, d, name, btn) {
+            targetA = a;
+            targetB = b;
+            targetC = c;
+            targetD = d;
+            modeText.innerText = name + ' (' + name.toUpperCase() + ')';
+            document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // ==========================================
+        // 数学向量场粒子引擎
+        // ==========================================
+
+        class Particle {
+            constructor() {
+                this.reset();
+                // 赋予每个粒子一个随机的生命周期，防止系统陷入完全静态的死胡同
+                this.life = Math.random() * 200 + 50; 
+            }
+
+            reset() {
+                // 将粒子散布在数学坐标系 [-3, 3] 之间
+                this.x = (Math.random() - 0.5) * 6;
+                this.y = (Math.random() - 0.5) * 6;
+                this.life = Math.random() * 200 + 100;
+            }
+
+            update(a, b, c, d) {
+                // 核心方程：计算当前坐标的向量速度 (Vector Velocity)
+                let vx = Math.sin(a * this.y) + Math.cos(b * this.x);
+                let vy = Math.sin(c * this.x) + Math.cos(d * this.y);
+
+                // 鼠标扰动：将鼠标位置转化为引力场扭曲
+                vx += mouse.normalizedX * 0.1;
+                vy += mouse.normalizedY * 0.1;
+
+                this.x += vx * 0.015; // 步长
+                this.y += vy * 0.015;
+                
+                this.life--;
+
+                // 如果粒子寿命耗尽，或者飞得太远，则重置
+                if (this.life <= 0 || this.x > 6 || this.x < -6 || this.y > 6 || this.y < -6) {
+                    this.reset();
+                }
+
+                // 记录速度用于渲染计算颜色
+                this.vx = vx;
+                this.vy = vy;
+            }
+
+            draw() {
+                // 将数学坐标映射到屏幕坐标
+                let screenX = (this.x * scale) + width / 2;
+                let screenY = (this.y * scale) + height / 2;
+
+                // 基于速度的方向(角度)计算颜色 (HSL 色相)
+                // 这使得同一流向的粒子呈现相同的光泽，极具结构美感
+                let angle = Math.atan2(this.vy, this.vx);
+                let hue = (angle * 180 / Math.PI) + 200 + (currA * 20); // 色相偏移
+
+                // 为了极致性能，直接操作 fillRect 而不是画圆
+                ctx.fillStyle = `hsla(${hue}, 80%, 65%, 0.4)`;
+                ctx.fillRect(screenX, screenY, 1.2, 1.2);
+            }
+        }
+
+        // 实例化两万个粒子
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            // 平滑插值计算参数，让向量场的变化如流体般丝滑
+            currA += (targetA - currA) * 0.02;
+            currB += (targetB - currB) * 0.02;
+            currC += (targetC - currC) * 0.02;
+            currD += (targetD - currD) * 0.02;
+
+            paramsText.innerText = `A:${currA.toFixed(2)} B:${currB.toFixed(2)} C:${currC.toFixed(2)} D:${currD.toFixed(2)}`;
+
+            // 使用极低的透明度擦除上一帧，留下星轨般的长曝光拖影
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(2, 2, 4, 0.08)';
+            ctx.fillRect(0, 0, width, height);
+
+            // 叠加高亮模式
+            ctx.globalCompositeOperation = 'lighter';
+
+            // 批量更新与渲染
+            for (let p of particles) {
+                p.update(currA, currB, currC, currD);
+                p.draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 交互：捕获鼠标并归一化为 [-1, 1] 的扰动参数
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.normalizedX = (e.clientX / width - 0.5) * 2;
+            mouse.normalizedY = (e.clientY / height - 0.5) * 2;
+        });
+
+        window.addEventListener('mouseout', () => {
+            mouse.normalizedX = 0;
+            mouse.normalizedY = 0;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.normalizedX = (e.touches[0].clientX / width - 0.5) * 2;
+            mouse.normalizedY = (e.touches[0].clientY / height - 0.5) * 2;
+        }, {passive: true});
+
+        // 点火运行
+        animate();
+    </script>
+</body>
+</html>

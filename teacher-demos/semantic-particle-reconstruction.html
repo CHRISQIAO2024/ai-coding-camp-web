@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模态跃迁 · 语义粒子重构</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050508;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 极客指挥控制台 */
+        .terminal-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 15, 20, 0.75);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-left: 3px solid #10b981;
+            border-right: 3px solid #10b981;
+            padding: 15px 30px;
+            border-radius: 12px;
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(16, 185, 129, 0.1);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a7f3d0;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            color: #fff;
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        button.active {
+            color: #064e3b;
+            background: #10b981;
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .hud-scan {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(16, 185, 129, 0.8);
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 12px;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .hud-scan span { color: #fff; font-weight: bold; }
+        
+        /* 隐形的离屏 Canvas，用于抽取文字像素 */
+        #text-canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-scan">
+        MODAL_STATUS: <span id="mode-text">游离态 (CHAOS)</span><br>
+        PARTICLE_AGENTS: <span id="particle-count">0</span><br>
+        [ 点击控制台触发语义对齐 ]
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    <canvas id="text-canvas"></canvas>
+
+    <div class="terminal-panel">
+        <button class="active" onclick="morphToText('CHAOS', this)">游离态</button>
+        <button onclick="morphToText('AI', this)">概念：AI</button>
+        <button onclick="morphToText('VIBE', this)">概念：VIBE</button>
+        <button onclick="morphToText('EVOLVE', this)">概念：进化</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const textCanvas = document.getElementById('text-canvas');
+        const textCtx = textCanvas.getContext('2d', { willReadFrequently: true });
+        
+        const modeText = document.getElementById('mode-text');
+        const countText = document.getElementById('particle-count');
+
+        let width, height;
+        let particles = [];
+        const NUM_PARTICLES = 3500;
+        
+        let currentTargetMode = 'CHAOS';
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            textCanvas.width = width;
+            textCanvas.height = height;
+            
+            // 如果已经在显示文字，调整窗口大小时需要重新计算坐标
+            if(currentTargetMode !== 'CHAOS') {
+                morphToText(currentTargetMode, document.querySelector('.active'));
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ==========================================
+        // 核心技术：从文字中提取像素坐标点
+        // ==========================================
+        function getTextTargets(text) {
+            // 清空离屏画布
+            textCtx.clearRect(0, 0, width, height);
+            
+            // 设置文字样式
+            const fontSize = Math.min(width / (text.length * 0.7), height * 0.5);
+            textCtx.font = `900 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+            textCtx.fillStyle = 'white';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            
+            // 将文字绘制在屏幕正中央
+            textCtx.fillText(text, width / 2, height / 2);
+            
+            // 获取所有像素数据
+            const imageData = textCtx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            let targets = [];
+            
+            // 遍历像素 (步长决定了采样密度，步长越大粒子越稀疏)
+            const step = 6; 
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    const index = (y * width + x) * 4;
+                    // 如果像素的透明度 (Alpha) 大于 128，说明这里有文字
+                    if (data[index + 3] > 128) {
+                        targets.push({ x: x, y: y });
+                    }
+                }
+            }
+            return targets;
+        }
+
+        // ==========================================
+        // 智能粒子类 (带有寻路和抵达算法)
+        // ==========================================
+        class Particle {
+            constructor() {
+                // 当前坐标 (初始随机散布)
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                // 目标坐标
+                this.targetX = this.x;
+                this.targetY = this.y;
+                // 速度向量
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                
+                // 物理参数
+                this.maxSpeed = Math.random() * 8 + 4;
+                this.maxForce = Math.random() * 0.4 + 0.1;
+                this.size = Math.random() * 1.5 + 0.8;
+                
+                // 颜色 (翡翠绿到青蓝的渐变)
+                this.hue = 150 + Math.random() * 40; 
+            }
+
+            // 指派新的目标点
+            setTarget(x, y) {
+                this.targetX = x;
+                this.targetY = y;
+            }
+
+            // 恢复无序状态的目标 (屏幕内的随机游走点)
+            setChaosTarget() {
+                this.targetX = Math.random() * width;
+                this.targetY = Math.random() * height;
+            }
+
+            update() {
+                // Steering Behaviors: Arrival (抵达算法)
+                let dx = this.targetX - this.x;
+                let dy = this.targetY - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                let desiredVx = 0;
+                let desiredVy = 0;
+
+                if (currentTargetMode === 'CHAOS') {
+                    // 游离态：如果没有到达目标，就慢慢走；到达了就换个新目标
+                    if (distance < 50) this.setChaosTarget();
+                    let speed = this.maxSpeed * 0.3; // 游走时速度放慢
+                    desiredVx = (dx / distance) * speed;
+                    desiredVy = (dy / distance) * speed;
+                } else {
+                    // 矩阵对齐态：精准抵达目标坐标并减速
+                    if (distance > 0) {
+                        // 距离小于 100 时开始减速刹车
+                        let speed = distance < 100 ? this.maxSpeed * (distance / 100) : this.maxSpeed;
+                        desiredVx = (dx / distance) * speed;
+                        desiredVy = (dy / distance) * speed;
+                    }
+                }
+
+                // 计算转向力 (期望速度 - 当前速度)
+                let steerX = desiredVx - this.vx;
+                let steerY = desiredVy - this.vy;
+                
+                // 限制转向力，模拟惯性
+                let steerDist = Math.sqrt(steerX * steerX + steerY * steerY);
+                if (steerDist > this.maxForce) {
+                    steerX = (steerX / steerDist) * this.maxForce;
+                    steerY = (steerY / steerDist) * this.maxForce;
+                }
+
+                // 加入微小的柏林噪声/随机扰动，让粒子即使静止也有呼吸感
+                steerX += (Math.random() - 0.5) * 0.3;
+                steerY += (Math.random() - 0.5) * 0.3;
+
+                // 应用力到速度，速度更新位置
+                this.vx += steerX;
+                this.vy += steerY;
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                // 根据当前速度决定亮度，移动越快越亮
+                let speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                let lightness = Math.min(40 + speed * 10, 90);
+                
+                ctx.fillStyle = `hsl(${this.hue}, 90%, ${lightness}%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 初始化所有粒子
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push(new Particle());
+        }
+        countText.innerText = NUM_PARTICLES;
+
+        // ==========================================
+        // 核心控制指令
+        // ==========================================
+        window.morphToText = function(text, btn) {
+            currentTargetMode = text;
+            
+            // 更新 UI
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            let statusName = text === 'CHAOS' ? '游离态 (CHAOS)' : `概念重构 (${text})`;
+            modeText.innerText = statusName;
+
+            if (text === 'CHAOS') {
+                // 释放所有粒子进入随机游走
+                particles.forEach(p => p.setChaosTarget());
+            } else {
+                // 提取目标文字的坐标
+                let targets = getTextTargets(text);
+                
+                if(targets.length === 0) return; // 防止空字符
+                
+                // 将坐标打乱，让粒子寻找目标的轨迹产生交叉，视觉更震撼
+                targets.sort(() => Math.random() - 0.5);
+
+                // 将像素目标分配给粒子
+                for (let i = 0; i < particles.length; i++) {
+                    // 如果粒子比目标多，循环复用目标点，让多个粒子叠加在同一个像素上增加亮度
+                    let target = targets[i % targets.length];
+                    particles[i].setTarget(target.x, target.y);
+                }
+            }
+        };
+
+        function animate() {
+            // 背景清理并带有拖尾效果
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(2, 5, 8, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            // 叠加发光模式
+            ctx.globalCompositeOperation = 'lighter';
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 启动游离态
+        morphToText('CHAOS');
+        animate();
+    </script>
+</body>
+</html>

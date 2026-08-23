@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>液态金属 · 有机拓扑融合</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000205;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* 核心魔法：使用 SVG 滤镜实现液态金属融合效果 */
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            filter: url('#gooey');
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 赛博玻璃态控制面板 */
+        .glass-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.4);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 16px 28px;
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 2px 15px rgba(56, 189, 248, 0.1);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 12px 26px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        button:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        button.active {
+            color: #0f172a;
+            background: #38bdf8;
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: #38bdf8;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 13px;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: 1.5px;
+            z-index: 10;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .hud-overlay span { color: #fff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- SVG 阈值滤镜定义区 -->
+    <svg style="width: 0; height: 0; position: absolute;">
+        <defs>
+            <filter id="gooey">
+                <!-- 1. 强力高斯模糊 -->
+                <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur" />
+                <!-- 2. 颜色矩阵提高 Alpha 通道对比度，将模糊的边缘“切”出锐利的融合线 -->
+                <feColorMatrix in="blur" mode="matrix" values="
+                    1 0 0 0 0  
+                    0 1 0 0 0  
+                    0 0 1 0 0  
+                    0 0 0 25 -12" result="goo" />
+                <!-- 3. 将原色叠加回去 -->
+                <feBlend in="SourceGraphic" in2="goo" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="hud-overlay">
+        EVOLUTION_STAGE: <span id="mode-text">零重力游离 (ZERO-G)</span><br>
+        SYMBIOTE_CELLS: <span>80</span><br>
+        [ 滑动鼠标释放排斥力场 ]
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="glass-panel">
+        <button class="active" onclick="setMode('zero-g', '零重力游离', this)">游离状态</button>
+        <button onclick="setMode('fusion', '深渊聚变', this)">深渊聚变</button>
+        <button onclick="setMode('fission', '高能裂变', this)">高能裂变</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const modeText = document.getElementById('mode-text');
+
+        let width, height, centerX, centerY;
+        let blobs = [];
+        const NUM_BLOBS = 80;
+        
+        let mouse = { x: -1000, y: -1000, vx: 0, vy: 0 };
+        let mode = 'zero-g'; // zero-g, fusion, fission
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function setMode(newMode, name, btn) {
+            mode = newMode;
+            modeText.innerText = name + ' (' + newMode.toUpperCase() + ')';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // 细胞/液滴 类定义
+        class Blob {
+            constructor() {
+                this.radius = Math.random() * 25 + 15; // 基础大小
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+                
+                // 给液态金属分配一点深海/赛博色调的渐变
+                const colors = [
+                    '#38bdf8', // 天蓝
+                    '#818cf8', // 靛蓝
+                    '#2dd4bf', // 青色
+                    '#f472b6'  // 粉红 (作为突变异类)
+                ];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // 质量越大，受引力影响越明显
+                this.mass = this.radius; 
+            }
+
+            update() {
+                // 1. 根据当前模式施加环境力场
+                if (mode === 'fusion') {
+                    // 向屏幕中心聚合
+                    let dx = centerX - this.x;
+                    let dy = centerY - this.y;
+                    this.vx += dx * 0.0005;
+                    this.vy += dy * 0.0005;
+                    // 增加一点摩擦力防止它们无限加速飞出
+                    this.vx *= 0.98;
+                    this.vy *= 0.98;
+                } 
+                else if (mode === 'fission') {
+                    // 剧烈布朗运动
+                    this.vx += (Math.random() - 0.5) * 2;
+                    this.vy += (Math.random() - 0.5) * 2;
+                    this.vx *= 0.95;
+                    this.vy *= 0.95;
+                }
+                else {
+                    // Zero-G：保持匀速
+                    let speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (speed < 1) {
+                        this.vx *= 1.1;
+                        this.vy *= 1.1;
+                    }
+                }
+
+                // 2. 鼠标排斥力 (用鼠标切开融合体)
+                let mdx = mouse.x - this.x;
+                let mdy = mouse.y - this.y;
+                let dist = Math.sqrt(mdx * mdx + mdy * mdy);
+                
+                if (dist < 180) {
+                    // 距离越近，排斥力越大
+                    let force = (180 - dist) / 180;
+                    this.vx -= (mdx / dist) * force * 4;
+                    this.vy -= (mdy / dist) * force * 4;
+                }
+
+                // 更新位置
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 3. 柔性边缘碰撞检测 (保持在屏幕内)
+                const margin = this.radius;
+                if (this.x < margin) { this.x = margin; this.vx *= -1; }
+                if (this.x > width - margin) { this.x = width - margin; this.vx *= -1; }
+                if (this.y < margin) { this.y = margin; this.vy *= -1; }
+                if (this.y > height - margin) { this.y = height - margin; this.vy *= -1; }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        // 初始化液滴群
+        for (let i = 0; i < NUM_BLOBS; i++) {
+            blobs.push(new Blob());
+        }
+
+        // 为了增加一点层次感，我们在中心放一个巨大的固定液滴（作为聚变核心）
+        let coreBlob = new Blob();
+        coreBlob.radius = 60;
+        coreBlob.color = '#1e1b4b'; // 极暗的深蓝色
+
+        function animate() {
+            // 清空画布 (不使用拖影，因为 SVG 滤镜需要干净的纯色边缘来计算 Alpha)
+            ctx.clearRect(0, 0, width, height);
+
+            // 聚变模式下绘制并固定中心核心
+            if (mode === 'fusion') {
+                coreBlob.x = centerX;
+                coreBlob.y = centerY;
+                coreBlob.draw();
+            }
+
+            // 更新并绘制所有游离液滴
+            for (let blob of blobs) {
+                blob.update();
+                blob.draw();
+            }
+
+            // 记录上一帧鼠标位置用于计算动量 (可选扩展)
+            requestAnimationFrame(animate);
+        }
+
+        // 交互监听
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        window.addEventListener('mouseout', () => {
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+        
+        window.addEventListener('touchend', () => {
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        // 启动引擎
+        animate();
+    </script>
+</body>
+</html>

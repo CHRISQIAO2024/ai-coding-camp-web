@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>KET 词汇进化 - V1 基础层级</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0f172a; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        
+        /* 强制画布在底层，确保 UI 可见 */
+        canvas { display: block; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        
+        /* HUD 和按钮置顶 */
+        .hud { position: absolute; top: 20px; left: 20px; color: #fff; font-size: 16px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; z-index: 100; pointer-events: none; }
+        #add-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 15px 30px; font-size: 18px; cursor: pointer; background: #059669; color: white; border: none; border-radius: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); }
+        #add-btn:hover { background: #10b981; transform: translateX(-50%) scale(1.05); }
+    </style>
+</head>
+<body>
+    <div class="hud">当前等级：V1 | 已解锁：<span id="score">0</span> / 300</div>
+    <button id="add-btn">🚀 抽取一组 V1 基础词汇</button>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // 等待页面加载完成再执行
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const scoreEl = document.getElementById('score');
+            const btn = document.getElementById('add-btn');
+
+            let wordDatabase = [
+                {"en": "a", "cn": "一个"}, {"en": "about", "cn": "关于"}, {"en": "above", "cn": "在...之上"}, {"en": "across", "cn": "穿过"}, {"en": "act", "cn": "行动"}, {"en": "add", "cn": "增加"}, {"en": "address", "cn": "地址"}, {"en": "adult", "cn": "成年人"}, {"en": "advice", "cn": "建议"}, {"en": "afraid", "cn": "害怕"}, {"en": "after", "cn": "在...之后"}, {"en": "afternoon", "cn": "下午"}, {"en": "again", "cn": "再一次"}, {"en": "age", "cn": "年龄"}, {"en": "ago", "cn": "以前"}, {"en": "agree", "cn": "同意"}, {"en": "air", "cn": "空气"}, {"en": "airport", "cn": "机场"}, {"en": "all", "cn": "全部"}, {"en": "allow", "cn": "允许"}, {"en": "almost", "cn": "几乎"}, {"en": "alone", "cn": "单独的"}, {"en": "along", "cn": "沿着"}, {"en": "also", "cn": "也"}, {"en": "always", "cn": "总是"}, {"en": "amazing", "cn": "令人惊奇的"}, {"en": "an", "cn": "一个"}, {"en": "and", "cn": "和"}, {"en": "angry", "cn": "生气的"}, {"en": "animal", "cn": "动物"}, {"en": "another", "cn": "另一个"}, {"en": "answer", "cn": "回答"}, {"en": "any", "cn": "任何"}, {"en": "anything", "cn": "任何事"}, {"en": "apple", "cn": "苹果"}, {"en": "area", "cn": "区域"}, {"en": "arm", "cn": "手臂"}, {"en": "around", "cn": "在...周围"}, {"en": "arrive", "cn": "到达"}, {"en": "art", "cn": "艺术"}, {"en": "as", "cn": "像"}, {"en": "ask", "cn": "问"}, {"en": "at", "cn": "在"}, {"en": "aunt", "cn": "阿姨"}, {"en": "autumn", "cn": "秋天"}, {"en": "away", "cn": "离开"}, {"en": "baby", "cn": "婴儿"}, {"en": "back", "cn": "后背"}, {"en": "bad", "cn": "坏的"}, {"en": "bag", "cn": "包"}, {"en": "ball", "cn": "球"}, {"en": "banana", "cn": "香蕉"}, {"en": "band", "cn": "乐队"}, {"en": "bank", "cn": "银行"}, {"en": "bath", "cn": "洗澡"}, {"en": "bathroom", "cn": "浴室"}, {"en": "be", "cn": "是"}, {"en": "beach", "cn": "海滩"}, {"en": "beautiful", "cn": "美丽的"}, {"en": "because", "cn": "因为"}, {"en": "become", "cn": "变得"}, {"en": "bed", "cn": "床"}, {"en": "bedroom", "cn": "卧室"}, {"en": "bee", "cn": "蜜蜂"}, {"en": "before", "cn": "在...之前"}, {"en": "begin", "cn": "开始"}, {"en": "behind", "cn": "在...后面"}, {"en": "believe", "cn": "相信"}, {"en": "below", "cn": "在...下面"}, {"en": "best", "cn": "最好的"}, {"en": "better", "cn": "更好的"}, {"en": "between", "cn": "在...之间"}, {"en": "bicycle", "cn": "自行车"}, {"en": "big", "cn": "大的"}, {"en": "bike", "cn": "自行车"}, {"en": "bird", "cn": "鸟"}, {"en": "black", "cn": "黑色"}, {"en": "blue", "cn": "蓝色"}, {"en": "board", "cn": "板"}, {"en": "boat", "cn": "船"}, {"en": "body", "cn": "身体"}, {"en": "book", "cn": "书"}, {"en": "bored", "cn": "无聊的"}, {"en": "boring", "cn": "令人无聊的"}, {"name": "born", "cn": "出生"}, {"en": "both", "cn": "两者都"}, {"en": "bottle", "cn": "瓶子"}, {"en": "box", "cn": "盒子"}, {"en": "boy", "cn": "男孩"}, {"en": "bread", "cn": "面包"}, {"en": "break", "cn": "打破"}, {"en": "breakfast", "cn": "早餐"}, {"en": "bring", "cn": "带来"}, {"en": "brother", "cn": "兄弟"}, {"en": "brown", "cn": "棕色"}, {"en": "build", "cn": "建造"}, {"en": "bus", "cn": "公交车"}, {"en": "business", "cn": "生意"}, {"en": "busy", "cn": "忙碌的"}, {"en": "but", "cn": "但是"}, {"en": "butter", "cn": "黄油"}, {"en": "buy", "cn": "买"}, {"en": "by", "cn": "通过"}, {"en": "bye", "cn": "再见"}, {"en": "cake", "cn": "蛋糕"}, {"en": "call", "cn": "呼叫"}, {"en": "camera", "cn": "照相机"}, {"en": "can", "cn": "能够"}, {"en": "cannot", "cn": "不能"}, {"en": "car", "cn": "汽车"}, {"en": "card", "cn": "卡片"}, {"en": "care", "cn": "照顾"}, {"en": "carry", "cn": "携带"}, {"en": "cat", "cn": "猫"}, {"en": "catch", "cn": "抓住"}, {"en": "celebrate", "cn": "庆祝"}, {"en": "cent", "cn": "分"}, {"en": "centre", "cn": "中心"}, {"en": "chair", "cn": "椅子"}, {"en": "change", "cn": "改变"}, {"en": "cheap", "cn": "便宜的"}, {"en": "check", "cn": "检查"}, {"en": "cheese", "cn": "奶酪"}, {"en": "chicken", "cn": "鸡肉"}, {"en": "child", "cn": "孩子"}, {"en": "chocolate", "cn": "巧克力"}, {"en": "choose", "cn": "选择"}, {"en": "cinema", "cn": "电影院"}, {"en": "city", "cn": "城市"}, {"en": "class", "cn": "班级"}, {"en": "clean", "cn": "干净的"}, {"en": "clear", "cn": "清晰的"}, {"en": "clever", "cn": "聪明的"}, {"en": "climb", "cn": "爬"}, {"en": "clock", "cn": "时钟"}, {"en": "close", "cn": "关闭"}, {"en": "clothes", "cn": "衣服"}, {"en": "club", "cn": "俱乐部"}, {"en": "coffee", "cn": "咖啡"}, {"en": "cold", "cn": "寒冷的"}, {"en": "colour", "cn": "颜色"}, {"en": "come", "cn": "来"}, {"en": "comfortable", "cn": "舒适的"}, {"en": "common", "cn": "常见的"}, {"en": "computer", "cn": "电脑"}, {"en": "cook", "cn": "烹饪"}, {"en": "cool", "cn": "凉爽的"}, {"en": "correct", "cn": "正确的"}, {"en": "cost", "cn": "花费"}, {"en": "could", "cn": "能够"}, {"en": "country", "cn": "国家"}, {"en": "course", "cn": "课程"}, {"en": "cousin", "cn": "堂表亲"}, {"en": "cow", "cn": "奶牛"}, {"en": "cream", "cn": "奶油"}, {"en": "create", "cn": "创造"}, {"en": "cry", "cn": "哭"}, {"en": "cup", "cn": "杯子"}, {"en": "cupboard", "cn": "橱柜"}, {"en": "customer", "cn": "顾客"}, {"en": "cut", "cn": "切"}, {"en": "dad", "cn": "爸爸"}, {"en": "dance", "cn": "跳舞"}, {"en": "dangerous", "cn": "危险的"}, {"en": "dark", "cn": "黑暗的"}, {"en": "date", "cn": "日期"}, {"en": "daughter", "cn": "女儿"}, {"en": "day", "cn": "天"}, {"en": "dear", "cn": "亲爱的"}, {"en": "decide", "cn": "决定"}, {"en": "deep", "cn": "深的"}, {"en": "delicious", "cn": "美味的"}, {"en": "describe", "cn": "描述"}, {"en": "design", "cn": "设计"}, {"en": "desk", "cn": "书桌"}, {"en": "detail", "cn": "细节"}, {"en": "dialogue", "cn": "对话"}, {"en": "dictionary", "cn": "词典"}, {"en": "die", "cn": "死亡"}, {"en": "difference", "cn": "不同"}, {"en": "different", "cn": "不同的"}, {"en": "difficult", "cn": "困难的"}, {"en": "dinner", "cn": "晚餐"}, {"en": "dirty", "cn": "脏的"}, {"en": "do", "cn": "做"}, {"en": "doctor", "cn": "医生"}, {"en": "dog", "cn": "狗"}, {"en": "door", "cn": "门"}, {"en": "down", "cn": "向下"}, {"en": "draw", "cn": "画"}, {"en": "dream", "cn": "梦想"}, {"en": "dress", "cn": "连衣裙"}, {"en": "drink", "cn": "喝"}, {"en": "drive", "cn": "驾驶"}, {"en": "driver", "cn": "司机"}, {"en": "dry", "cn": "干的"}, {"en": "during", "cn": "在...期间"}, {"en": "each", "cn": "每个"}, {"en": "ear", "cn": "耳朵"}, {"en": "early", "cn": "早的"}, {"en": "east", "cn": "东"}, {"en": "easy", "cn": "容易的"}, {"en": "eat", "cn": "吃"}, {"en": "egg", "cn": "鸡蛋"}, {"en": "eight", "cn": "八"}, {"en": "eighteen", "cn": "十八"}, {"en": "eighty", "cn": "八十"}, {"en": "either", "cn": "也"}, {"en": "elephant", "cn": "大象"}, {"en": "else", "cn": "其他的"}, {"en": "email", "cn": "电子邮件"}, {"en": "end", "cn": "结束"}, {"en": "enjoy", "cn": "享受"}, {"en": "enough", "cn": "足够的"}, {"en": "enter", "cn": "进入"}, {"en": "euro", "cn": "欧元"}, {"en": "even", "cn": "甚至"}, {"en": "evening", "cn": "晚上"}, {"en": "ever", "cn": "曾经"}, {"en": "every", "cn": "每个"}, {"en": "everyone", "cn": "每个人"}, {"en": "everything", "cn": "每件事"}, {"en": "exam", "cn": "考试"}, {"en": "example", "cn": "例子"}, {"en": "excellent", "cn": "优秀的"}, {"en": "exciting", "cn": "令人兴奋的"}, {"en": "exercise", "cn": "练习"}, {"en": "expensive", "cn": "昂贵的"}, {"en": "explain", "cn": "解释"}, {"en": "extra", "cn": "额外的"}, {"en": "eye", "cn": "眼睛"}, {"en": "face", "cn": "脸"}, {"en": "fact", "cn": "事实"}, {"en": "fair", "cn": "公平的"}, {"en": "fall", "cn": "落下"}, {"en": "false", "cn": "错误的"}, {"en": "family", "cn": "家庭"}, {"en": "famous", "cn": "著名的"}, {"en": "far", "cn": "远的"}, {"en": "farm", "cn": "农场"}, {"en": "farmer", "cn": "农民"}, {"en": "fast", "cn": "快的"}, {"en": "fat", "cn": "胖的"}, {"en": "father", "cn": "父亲"}, {"en": "favourite", "cn": "最喜欢的"}, {"en": "feel", "cn": "感觉"}, {"en": "feeling", "cn": "感觉"}, {"en": "feet", "cn": "脚"}, {"en": "few", "cn": "很少的"}, {"en": "field", "cn": "田野"}, {"en": "fifteen", "cn": "十五"}, {"en": "fifth", "cn": "第五"}, {"en": "fifty", "cn": "五十"}, {"en": "fight", "cn": "打架"}, {"en": "fill", "cn": "填充"}, {"en": "film", "cn": "电影"}, {"en": "final", "cn": "最后的"}, {"en": "find", "cn": "找到"}, {"en": "fine", "cn": "好的"}, {"en": "finish", "cn": "完成"}, {"en": "fire", "cn": "火"}, {"en": "first", "cn": "第一"}, {"en": "fish", "cn": "鱼"}, {"en": "five", "cn": "五"}, {"en": "fix", "cn": "修理"}, {"en": "flat", "cn": "公寓"}, {"en": "flight", "cn": "航班"}, {"en": "floor", "cn": "地板"}, {"en": "flower", "cn": "花"}, {"en": "fly", "cn": "飞"}, {"en": "follow", "cn": "跟随"}, {"en": "food", "cn": "食物"}, {"en": "foot", "cn": "脚"}, {"en": "for", "cn": "为了"}, {"en": "forget", "cn": "忘记"}, {"en": "fork", "cn": "叉子"}, {"en": "form", "cn": "表格"}, {"en": "forty", "cn": "四十"}, {"en": "four", "cn": "四"}, {"en": "fourteen", "cn": "十四"}, {"en": "fourth", "cn": "第四"}, {"en": "free", "cn": "免费的"}, {"en": "friend", "cn": "朋友"}, {"en": "friendly", "cn": "友好的"}, {"en": "from", "cn": "从"}, {"en": "front", "cn": "前面"}, {"en": "fruit", "cn": "水果"}, {"en": "full", "cn": "满的"}, {"en": "fun", "cn": "乐趣"}, {"en": "funny", "cn": "有趣的"}, {"en": "future", "cn": "未来"}, {"en": "game", "cn": "游戏"}, {"en": "garden", "cn": "花园"}, {"en": "gate", "cn": "大门"}, {"en": "general", "cn": "一般的"}, {"en": "get", "cn": "得到"}, {"en": "gift", "cn": "礼物"}, {"en": "girl", "cn": "女孩"}, {"en": "give", "cn": "给"}, {"en": "glass", "cn": "玻璃杯"}, {"en": "go", "cn": "去"}, {"en": "good", "cn": "好的"}, {"en": "goodbye", "cn": "再见"}, {"en": "grade", "cn": "年级"}, {"en": "gram", "cn": "克"}, {"en": "grandfather", "cn": "祖父"}, {"en": "grandmother", "cn": "祖母"}, {"en": "grandparent", "cn": "祖父母"}, {"en": "gray", "cn": "灰色"}, {"en": "great", "cn": "伟大的"}, {"en": "green", "cn": "绿色"}, {"en": "grey", "cn": "灰色"}, {"en": "ground", "cn": "地面"}, {"en": "group", "cn": "组"}, {"en": "grow", "cn": "生长"}, {"en": "guess", "cn": "猜测"}, {"en": "guide", "cn": "向导"}, {"en": "guitar", "cn": "吉他"}
+            ];
+
+            let bubbles = [], score = 0, pointer = 0;
+            function shuffle(arr) { arr.sort(() => Math.random() - 0.5); }
+            shuffle(wordDatabase);
+
+            class Bubble {
+                constructor(word) {
+                    this.x = Math.random() * (window.innerWidth - 100) + 50;
+                    this.y = -50; this.vy = Math.random() * 2 + 1;
+                    this.en = word.en; this.cn = word.cn; this.radius = 50;
+                }
+                update() { this.y += this.vy; }
+                draw() {
+                    ctx.fillStyle = '#3b82f6'; ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '16px Arial'; ctx.fillText(this.en, this.x, this.y + 5);
+                }
+            }
+
+            class FloatingText {
+                constructor(x, y, text) { this.x = x; this.y = y; this.text = text; this.alpha = 1; }
+                update() { this.y -= 1; this.alpha -= 0.01; }
+                draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = '#fbbf24'; ctx.font = '24px Arial'; ctx.fillText(this.text, this.x, this.y); ctx.globalAlpha = 1; }
+            }
+
+            let floatingTexts = [];
+            canvas.addEventListener('mousedown', (e) => {
+                bubbles.forEach((b, i) => {
+                    if (Math.hypot(e.clientX - b.x, e.clientY - b.y) < b.radius) {
+                        const utter = new SpeechSynthesisUtterance(b.en);
+                        window.speechSynthesis.speak(utter);
+                        floatingTexts.push(new FloatingText(b.x, b.y, b.cn));
+                        bubbles.splice(i, 1); score++; scoreEl.innerText = score;
+                    }
+                });
+            });
+
+            btn.addEventListener('click', () => {
+                for(let i=0; i<3; i++) {
+                    if(pointer < wordDatabase.length) bubbles.push(new Bubble(wordDatabase[pointer++]));
+                }
+            });
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                bubbles.forEach(b => { b.update(); b.draw(); });
+                floatingTexts.forEach((ft, i) => { ft.update(); ft.draw(); if(ft.alpha <= 0) floatingTexts.splice(i, 1); });
+                requestAnimationFrame(animate);
+            }
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            animate();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量子星轨引力场</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #020206;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        /* 隐藏滚动条，确保画布全屏 */
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 悬浮控制台UI */
+        .control-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 32px;
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.05);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #94a3b8;
+            padding: 10px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        button:hover::before {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* 光谱激活状态 */
+        button.cyan.active { color: #0ff; border-color: #0ff; box-shadow: 0 0 20px rgba(0,255,255,0.4); text-shadow: 0 0 8px #0ff; }
+        button.magenta.active { color: #f0f; border-color: #f0f; box-shadow: 0 0 20px rgba(255,0,255,0.4); text-shadow: 0 0 8px #f0f; }
+        button.yellow.active { color: #ff0; border-color: #ff0; box-shadow: 0 0 20px rgba(255,255,0,0.4); text-shadow: 0 0 8px #ff0; }
+
+        .hint {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            pointer-events: none;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hint">滑动生成引力星轨 · 点击释放能量场</div>
+    <canvas id="canvas"></canvas>
+
+    <div class="control-panel">
+        <button class="cyan active" onclick="setTheme(180, this)">深海青</button>
+        <button class="magenta" onclick="setTheme(300, this)">脉冲紫</button>
+        <button class="yellow" onclick="setTheme(60, this)">恒星黄</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 设定画布尺寸并处理窗口缩放
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 交互状态
+        const mouse = { x: null, y: null, isMoving: false };
+        let currentHue = 180; // 默认青色 (HSL Hue值)
+        let particlesArray = [];
+
+        // UI 主题切换
+        function setTheme(hue, btn) {
+            currentHue = hue;
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // 切换主题时制造一次小爆发
+            createExplosion(window.innerWidth / 2, window.innerHeight / 2, 50);
+        }
+
+        // 粒子类定义
+        class Particle {
+            constructor(x, y, isExplosion = false) {
+                this.x = x;
+                this.y = y;
+                // 爆炸产生的粒子速度更快，尺寸更大
+                const speedMultiplier = isExplosion ? 3 : 1;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() * 4 - 2) * speedMultiplier;
+                this.speedY = (Math.random() * 4 - 2) * speedMultiplier;
+                // 颜色随当前色相产生轻微随机波动，增加层次感
+                this.color = `hsl(${currentHue + Math.random() * 20 - 10}, 100%, 60%)`;
+                this.life = 100; // 粒子生命周期
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                // 模拟空间摩擦力，逐渐减速
+                this.speedX *= 0.98;
+                this.speedY *= 0.98;
+                // 粒子逐渐缩小并消亡
+                if (this.size > 0.1) this.size -= 0.05;
+                this.life--;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 创建拖尾粒子
+        function handleParticles() {
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+
+                // 核心算法：计算粒子间距，连结成网 (Constellation Effect)
+                for (let j = i; j < particlesArray.length; j++) {
+                    const dx = particlesArray[i].x - particlesArray[j].x;
+                    const dy = particlesArray[i].y - particlesArray[j].y;
+                    const distance = dx * dx + dy * dy;
+                    
+                    // 当两个粒子距离小于 6000 (平方值) 时，绘制连线
+                    if (distance < 6000) {
+                        // 连线透明度根据距离动态变化，越近越亮
+                        const opacity = 1 - (distance / 6000);
+                        ctx.strokeStyle = `hsla(${currentHue}, 100%, 60%, ${opacity * 0.3})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                        ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // 清除消亡的粒子
+                if (particlesArray[i].life <= 0 || particlesArray[i].size <= 0.1) {
+                    particlesArray.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        // 能量爆发函数
+        function createExplosion(x, y, amount) {
+            for (let i = 0; i < amount; i++) {
+                particlesArray.push(new Particle(x, y, true));
+            }
+        }
+
+        // 动画主循环
+        function animate() {
+            // 使用带有透明度的黑色填充，形成视觉残留（拖影效果）
+            ctx.fillStyle = 'rgba(2, 2, 6, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            handleParticles();
+            requestAnimationFrame(animate);
+        }
+
+        // --- 交互事件监听 ---
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+            // 每次鼠标移动生成 3 个粒子
+            for (let i = 0; i < 3; i++) {
+                particlesArray.push(new Particle(mouse.x, mouse.y));
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            // 点击时产生能量爆发
+            createExplosion(e.x, e.y, 30);
+        });
+
+        // 触屏设备支持
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            for (let i = 0; i < 3; i++) {
+                particlesArray.push(new Particle(mouse.x, mouse.y));
+            }
+        }, {passive: true});
+
+        window.addEventListener('touchstart', (e) => {
+            createExplosion(e.touches[0].clientX, e.touches[0].clientY, 30);
+        }, {passive: true});
+
+        // 启动引擎
+        animate();
+    </script>
+</body>
+</html>

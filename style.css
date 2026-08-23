@@ -517,6 +517,33 @@ h3 {
   font-size: 18px;
 }
 
+.gallery-section {
+  max-width: none;
+  padding-left: max(22px, calc((100vw - 1180px) / 2));
+  padding-right: max(22px, calc((100vw - 1180px) / 2));
+  background:
+    radial-gradient(circle at 80% 24%, rgba(31, 111, 168, 0.14), transparent 24%),
+    linear-gradient(180deg, #fffdf7 0%, #eef7f5 100%);
+}
+
+.gallery-feature {
+  max-width: 1180px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.gallery-feature p {
+  color: var(--muted);
+  font-size: 18px;
+}
+
 .student-case .usage-note {
   margin-top: 12px;
   color: #5e4a16;
@@ -773,7 +800,8 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .student-case {
+  .student-case,
+  .gallery-feature {
     align-items: flex-start;
     flex-direction: column;
   }
