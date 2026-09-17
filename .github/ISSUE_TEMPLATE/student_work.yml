@@ -1,0 +1,41 @@
+name: 学生作品展示建议
+description: 提议展示经过授权和脱敏的学生作品
+title: "[Student work] "
+labels:
+  - student-work
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请勿在此公开上传作品文件、真实姓名、学校、联系方式或监护人信息。本 Issue 只用于启动审核。
+  - type: input
+    id: display_name
+    attributes:
+      label: 公开展示名或代号
+      description: 不必填写学生真实全名。
+      placeholder: 示例：MARCUS / Student A
+    validations:
+      required: true
+  - type: textarea
+    id: work
+    attributes:
+      label: 作品简介
+      description: 描述作品目标、形式和学习过程，不要粘贴敏感信息。
+    validations:
+      required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 作品来源和共同创作关系清楚。
+          required: true
+        - label: 学生及监护人已同意计划中的公开展示范围。
+          required: true
+        - label: 作品不包含不必要的个人信息。
+          required: true
+        - label: 第三方图片、音乐、字体和代码来源已经核对。
+          required: true
+        - label: 最终页面将保留作者、托管关系和用途说明。
+          required: true
+
