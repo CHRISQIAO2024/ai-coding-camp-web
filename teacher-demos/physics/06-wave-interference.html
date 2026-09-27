@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水波干涉与明暗条纹 | 经典物理实验</title>
+  <meta name='description' content='观察两个相干波源的波峰、波谷叠加与干涉条纹。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <clipPath id="wave-pool-clip"><rect x="35" y="145" width="450" height="225"/></clipPath>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🌊 水波相碰与明暗条纹 —— 波的干涉（Wave Interference）</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">波峰碰到波峰，巨浪翻腾；相干波叠加会形成增强与减弱区域；双缝实验也体现干涉规律。</text>
+  </g>
+
+  <!-- 左侧卡片：双波源水池涟漪相遇 -->
+  <rect x="25" y="85" width="460" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 两个点振源泛起涟漪（动态相遇）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">观察红圈与蓝圈相交之处：有的地方剧烈翻腾，有的地方风平浪静</text>
+
+  <!-- 右侧卡片：干涉光屏明暗相间 -->
+  <rect x="505" y="85" width="370" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="525" y="118" font-size="15" font-weight="bold" fill="#7c3aed">2. 接收屏上的干涉条纹（明暗相间）</text>
+  <text x="525" y="136" font-size="11.5" fill="#64748b">路程差为整波长处相互增强（亮），为半波长处抵消为零（暗）</text>
+
+  <!-- 左侧图形区域：波源 S1(110, 220), S2(110, 300) -->
+  <g id="interfere-stage">
+    <!-- 障碍隔板与双狭缝 -->
+    <line x1="110" y1="140" x2="110" y2="210" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+    <line x1="110" y1="230" x2="110" y2="290" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+    <line x1="110" y1="310" x2="110" y2="380" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- 双波源点 -->
+    <circle cx="110" cy="220" r="4.5" fill="#ef4444"/>
+    <text x="85" y="224" font-size="10" font-weight="bold" fill="#ef4444">缝 S₁</text>
+    <circle cx="110" cy="300" r="4.5" fill="#0284c7"/>
+    <text x="85" y="304" font-size="10" font-weight="bold" fill="#0284c7">缝 S₂</text>
+
+    <!-- 动态波前容器 -->
+    <g id="waves-s1" clip-path="url(#wave-pool-clip)"></g>
+    <g id="waves-s2" clip-path="url(#wave-pool-clip)"></g>
+
+    <!-- 中央对称轴与加强线 (中央亮纹指示线) -->
+    <line x1="110" y1="260" x2="465" y2="260" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="400" y="255" font-size="9" fill="#d97706" font-weight="bold">中央增强线</text>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="420" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-inter-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0369a1">波浪交叠中: 规律的加强线与抵消区</text>
+    <text id="label-inter-desc" x="58" y="418" font-size="10.5" fill="#0284c7">波峰碰波峰叠加成双倍巨浪，波峰碰波谷相互抵消变成平地！</text>
+  </g>
+
+  <!-- 右侧图形区域：光屏明暗条纹图景 -->
+  <g id="screen-stage" transform="translate(525, 160)">
+    <!-- 模拟干涉屏 (高对比黑底) -->
+    <rect x="10" y="10" width="80" height="200" rx="6" fill="#0f172a"/>
+    <!-- 条纹分布 -->
+    <!-- 亮条纹 0 (中央) -->
+    <rect x="10" y="98" width="80" height="24" fill="#38bdf8" opacity="0.95"/>
+    <text x="95" y="115" font-size="10" font-weight="bold" fill="#0284c7">中央最亮条纹 (路程差=0)</text>
+
+    <!-- 亮条纹 +1 / -1 -->
+    <rect x="10" y="45" width="80" height="18" fill="#38bdf8" opacity="0.8"/>
+    <text x="95" y="58" font-size="10" fill="#0369a1">第一级亮纹 (差 1个波长 λ)</text>
+    <rect x="10" y="157" width="80" height="18" fill="#38bdf8" opacity="0.8"/>
+    <text x="95" y="170" font-size="10" fill="#0369a1">第一级亮纹 (差 1个波长 λ)</text>
+
+    <!-- 暗条纹标注 -->
+    <text x="95" y="85" font-size="9.5" fill="#ef4444" font-weight="bold">⬅️ 暗条纹 (峰谷抵消，波完全消失！)</text>
+    <text x="95" y="142" font-size="9.5" fill="#ef4444" font-weight="bold">⬅️ 暗条纹 (峰谷抵消，波完全消失！)</text>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="525" y="380" width="330" height="48" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+  <text x="538" y="400" font-size="12" font-weight="bold" fill="#6b21a8">物理里程碑：杨氏双缝干涉实验</text>
+  <text x="538" y="418" font-size="10.5" fill="#7c3aed">杨氏双缝实验为光的波动性提供了重要证据。</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      两个波相碰，<tspan font-weight="bold">峰遇到峰变成双倍巨浪</tspan>（亮条纹）；<tspan fill="#ef4444" font-weight="bold">峰遇到谷刚好抹成镜面平水</tspan>（暗条纹），这就是<tspan fill="#7c3aed" font-weight="bold">双缝干涉</tspan>！
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const s1Container = document.getElementById('waves-s1');
+      const s2Container = document.getElementById('waves-s2');
+
+      const s1X = 110, s1Y = 220;
+      const s2X = 110, s2Y = 300;
+      const waveSpeed = 65; // 像素/秒
+      const wavelength = 32; // 波长 32px
+
+      const numRings = 9;
+      const ringsS1 = [];
+      const ringsS2 = [];
+
+      for (let i = 0; i < numRings; i++) {
+        const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c1.setAttribute('cx', s1X);
+        c1.setAttribute('cy', s1Y);
+        c1.setAttribute('fill', 'none');
+        c1.setAttribute('stroke', '#ef4444');
+        c1.setAttribute('stroke-width', '1.8');
+        s1Container.appendChild(c1);
+        ringsS1.push(c1);
+
+        const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c2.setAttribute('cx', s2X);
+        c2.setAttribute('cy', s2Y);
+        c2.setAttribute('fill', 'none');
+        c2.setAttribute('stroke', '#0284c7');
+        c2.setAttribute('stroke-width', '1.8');
+        s2Container.appendChild(c2);
+        ringsS2.push(c2);
+      }
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const phase = (elapsed / 1000) * waveSpeed;
+
+        for (let i = 0; i < numRings; i++) {
+          const r = (phase + i * wavelength) % (numRings * wavelength);
+          const op = Math.max(0, 1.0 - r / (numRings * wavelength));
+          ringsS1[i].setAttribute('r', r.toFixed(1));
+          ringsS1[i].setAttribute('stroke-opacity', op.toFixed(2));
+          ringsS2[i].setAttribute('r', r.toFixed(1));
+          ringsS2[i].setAttribute('stroke-opacity', op.toFixed(2));
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>两点波源用于展示干涉规律；双缝光学实验是干涉现象的另一种经典实现，不能与水波演示混为同一个实验。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

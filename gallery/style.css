@@ -349,6 +349,14 @@ h3 {
 .case-card.motion-involute .tag { background: #7650a8; }
 .case-card.motion-lissajous .tag { background: #bf7515; }
 .case-card.motion-catenary .tag { background: #b13b71; }
+.case-card.physics-projectile .tag { background: #2877a7; }
+.case-card.physics-kepler .tag { background: #7650a8; }
+.case-card.physics-pendulum .tag { background: #168268; }
+.case-card.physics-doppler .tag { background: #c74747; }
+.case-card.physics-optics .tag { background: #bf7515; }
+.case-card.physics-wave .tag { background: #147d92; }
+.case-card.physics-induction .tag { background: #b13b71; }
+.case-card.physics-lorentz .tag { background: #485c99; }
 
 .case-card p,
 .tool-card p,

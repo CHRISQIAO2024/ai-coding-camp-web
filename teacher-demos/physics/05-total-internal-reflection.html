@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>光的全反射与光纤 | 经典物理实验</title>
+  <meta name='description' content='观察光从光密介质射向光疏介质时的折射、反射与全反射。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="water-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">💎 从水中折射到光纤传输 —— 光的全反射（Total Reflection）</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">当入射角度超过临界角时，折射光全部消失，理想情况下光线不再折射进入空气；光纤常利用全反射引导光信号传播。</text>
+  </g>
+
+  <!-- 左侧卡片：水下激光旋转与临界突变 -->
+  <rect x="25" y="85" width="430" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 水中旋转激光灯（全反射突破）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">临界角 θc = 48.6°：小于它既折射又反射，大于它时发生全反射（理想界面）。</text>
+
+  <!-- 右侧卡片：光纤通信管道 -->
+  <rect x="475" y="85" width="400" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="495" y="118" font-size="15" font-weight="bold" fill="#16a34a">2. 现代科技奇迹：弯曲的光纤玻璃管</text>
+  <text x="495" y="136" font-size="11.5" fill="#64748b">光线在玻璃内壁不断全反射弹跳，光信号在光纤中传播，为通信提供重要载体。</text>
+
+  <!-- 左侧图形区域：水界面在 Y = 250, 入射点在 (240, 250) -->
+  <g id="tir-stage">
+    <!-- 下半部分水体背景 -->
+    <rect x="45" y="250" width="390" height="120" rx="6" fill="url(#water-grad)"/>
+    <line x1="45" y1="250" x2="435" y2="250" stroke="#0284c7" stroke-width="2.5"/>
+    <text x="55" y="240" font-size="10" fill="#64748b">空气 (光疏介质 n=1.0)</text>
+    <text x="55" y="268" font-size="10" fill="#0369a1" font-weight="bold">水体 (光密介质 n=1.33)</text>
+
+    <!-- 法线 (垂直虚线) -->
+    <line x1="240" y1="160" x2="240" y2="340" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="245" y="175" font-size="9" fill="#94a3b8">法线</text>
+
+    <!-- 入射光线 (水下发光器射向 240, 250) -->
+    <line id="ray-incident" x1="160" y1="330" x2="240" y2="250" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+    <!-- 水下激光灯头 -->
+    <circle id="emitter-head" cx="160" cy="330" r="7" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" filter="url(#soft-shadow)"/>
+
+    <!-- 反射光线 (弹回水中) -->
+    <line id="ray-reflected" x1="240" y1="250" x2="320" y2="330" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- 折射光线 (进入空气) -->
+    <line id="ray-refracted" x1="240" y1="250" x2="310" y2="170" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- 临界角辅助标记扇区 -->
+    <text x="180" y="240" font-size="10" fill="#dc2626" font-weight="bold">入射角 θ</text>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="390" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-tir-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0369a1">入射角: 30.0° (发生正常折射)</text>
+    <text id="label-tir-desc" x="58" y="418" font-size="10.5" fill="#0284c7">一部分光折射穿透进空气，一部分光反射回水中</text>
+  </g>
+
+  <!-- 右侧图形区域：光纤内部全反射管道 -->
+  <g id="fiber-stage" transform="translate(495, 160)">
+    <!-- 弯曲光纤玻璃管身 (双弧线管) -->
+    <path d="M 10 90 C 80 40, 140 140, 220 70 C 260 30, 310 80, 350 50" fill="none" stroke="#bae6fd" stroke-width="32" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 10 90 C 80 40, 140 140, 220 70 C 260 30, 310 80, 350 50" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="4,2"/>
+
+    <!-- 光纤内部光线弹跳折线 -->
+    <path d="M 10 90 L 55 60 L 105 105 L 165 72 L 210 102 L 255 42 L 305 78 L 350 50" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- 弹跳反光点 -->
+    <circle cx="55" cy="60" r="3.5" fill="#f59e0b"/>
+    <circle cx="105" cy="105" r="3.5" fill="#f59e0b"/>
+    <circle cx="165" cy="72" r="3.5" fill="#f59e0b"/>
+    <circle cx="210" cy="102" r="3.5" fill="#f59e0b"/>
+    <circle cx="255" cy="42" r="3.5" fill="#f59e0b"/>
+    <circle cx="305" cy="78" r="3.5" fill="#f59e0b"/>
+
+    <text x="180" y="145" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">💡 弯弯曲曲的光纤，光线为什么漏不出来？</text>
+    <text x="180" y="165" font-size="10" fill="#64748b" text-anchor="middle">理想情况下，光线在玻璃管壁处全反射并沿光纤传播。</text>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="495" y="380" width="360" height="48" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="508" y="400" font-size="12" font-weight="bold" fill="#15803d">光纤通信：全反射是重要的导光原理</text>
+  <text x="508" y="418" font-size="10.5" fill="#16a34a">长距离光纤通信依靠光信号在纤芯中传播。</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      光从水射向空气，角度越大折射越斜；<tspan font-weight="bold">一旦迈过临界角，折射消失全反弹</tspan>！就像被无形魔镜挡住，这就是<tspan fill="#ef4444" font-weight="bold">光的全反射</tspan>！
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const hitX = 240, hitY = 250;
+      const rayInc = document.getElementById('ray-incident');
+      const rayRef = document.getElementById('ray-reflected');
+      const rayRefr = document.getElementById('ray-refracted');
+      const emitter = document.getElementById('emitter-head');
+      const labelStatus = document.getElementById('label-tir-status');
+      const labelDesc = document.getElementById('label-tir-desc');
+
+      const n1 = 1.333, n2 = 1.0;
+      const criticalAngleDeg = (Math.asin(n2 / n1) * 180) / Math.PI; // 48.61°
+      const R_arm = 110;
+
+      const cycleDuration = 6000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        // 入射角在 10° 到 70° 之间往复平滑扫动
+        const pingPong = (Math.sin((elapsed / cycleDuration) * 2 * Math.PI) + 1) / 2; // 0 到 1
+        const theta1Deg = 15 + 50 * pingPong; // 15° 到 65°
+        const theta1Rad = (theta1Deg * Math.PI) / 180;
+
+        // 水下入射发射器位置: (hitX - R*sin(theta1), hitY + R*cos(theta1))
+        const emitX = hitX - R_arm * Math.sin(theta1Rad);
+        const emitY = hitY + R_arm * Math.cos(theta1Rad);
+
+        rayInc.setAttribute('x1', emitX.toFixed(1));
+        rayInc.setAttribute('y1', emitY.toFixed(1));
+        emitter.setAttribute('cx', emitX.toFixed(1));
+        emitter.setAttribute('cy', emitY.toFixed(1));
+
+        // 反射光线 (永远存在，角度 = theta1Rad)
+        const refEndX = hitX + R_arm * Math.sin(theta1Rad);
+        const refEndY = hitY + R_arm * Math.cos(theta1Rad);
+        rayRef.setAttribute('x2', refEndX.toFixed(1));
+        rayRef.setAttribute('y2', refEndY.toFixed(1));
+
+        // 折射光线判断
+        const sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+        if (sinTheta2 <= 1.0) {
+          // 未发生全反射，存在折射光
+          const theta2Rad = Math.asin(sinTheta2);
+          const refrEndX = hitX + R_arm * Math.sin(theta2Rad);
+          const refrEndY = hitY - R_arm * Math.cos(theta2Rad);
+          rayRefr.setAttribute('x2', refrEndX.toFixed(1));
+          rayRefr.setAttribute('y2', refrEndY.toFixed(1));
+          rayRefr.setAttribute('opacity', (1.0 - (theta1Deg / criticalAngleDeg) * 0.8).toFixed(2));
+          rayRef.setAttribute('stroke-width', '2');
+        } else {
+          // 发生全反射！折射光彻底消失
+          rayRefr.setAttribute('opacity', '0');
+          rayRef.setAttribute('stroke-width', '4'); // 反射光大增
+        }
+
+        // 状态文案
+        if (theta1Deg > criticalAngleDeg) {
+          labelStatus.textContent = '✨ 超过临界角 ' + criticalAngleDeg.toFixed(1) + '°！【触发 100% 全反射】！';
+          labelDesc.textContent = '折射光彻底消失，全部光能被 100% 锁在水中弹回！';
+        } else if (Math.abs(theta1Deg - criticalAngleDeg) < 3.0) {
+          labelStatus.textContent = '⚠️ 接近临界点 ' + criticalAngleDeg.toFixed(1) + '°！折射光贴地飞出';
+          labelDesc.textContent = '折射角达到 90° 极限，即将彻底转变为全反射！';
+        } else {
+          labelStatus.textContent = '🌊 入射角: ' + theta1Deg.toFixed(1) + '° (正常折射中)';
+          labelDesc.textContent = '一部分光折射穿出水面，一部分光反射回水中';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>全反射要求光从折射率较大的介质射向较小介质，且入射角大于临界角；图示忽略吸收、散射和界面损耗。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>救护车与多普勒效应 | 经典物理实验</title>
+  <meta name='description' content='观察声源运动时前后方波长和听到音调的变化。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🚑 呼啸而过的救护车 —— 多普勒效应（Doppler Effect）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">车头前的声波被挤压得致密高尖，车尾后的声波被拉伸得稀疏低沉；波纹疏密揭开了音调变幻的真相！</text>
+  </g>
+
+  <!-- 左侧卡片：救护车前行声波扩散实况 -->
+  <rect x="25" y="85" width="460" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#dc2626">1. 救护车前行发射声波（动态波环）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">车子一直在追赶前方自己发出的声波，波圈在前方挤压成堆</text>
+
+  <!-- 右侧卡片：前后听者音调波形对比 -->
+  <rect x="505" y="85" width="370" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="525" y="118" font-size="15" font-weight="bold" fill="#0284c7">2. 听者对比：尖锐高音 vs 低沉粗音</text>
+  <text x="525" y="136" font-size="11.5" fill="#64748b">前方波峰紧密（高频尖叫），后方波峰拉开（低沉粗音）</text>
+
+  <!-- 左侧图形区域：救护车在 Y = 260 平移 -->
+  <g id="doppler-stage">
+    <!-- 行进道路基准线 -->
+    <line x1="45" y1="285" x2="465" y2="285" stroke="#cbd5e1" stroke-width="2"/>
+    <line x1="45" y1="288" x2="465" y2="288" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+    <!-- 动态发射的声波圆环容器 -->
+    <g id="waves-container"></g>
+
+    <!-- 救护车组件 -->
+    <g id="ambulance" transform="translate(180, 255)">
+      <!-- 车身 -->
+      <rect x="-28" y="-18" width="56" height="28" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft-shadow)"/>
+      <rect x="-24" y="-6" width="48" height="6" fill="#ef4444"/>
+      <!-- 车窗 -->
+      <rect x="6" y="-15" width="16" height="10" rx="2" fill="#38bdf8"/>
+      <!-- 警灯 -->
+      <circle cx="-5" cy="-22" r="4.5" fill="#ef4444" id="siren-light"/>
+      <!-- 车轮 -->
+      <circle cx="-16" cy="10" r="5" fill="#334155"/>
+      <circle cx="16" cy="10" r="5" fill="#334155"/>
+      <!-- 前进速度箭头 -->
+      <line x1="32" y1="-4" x2="52" y2="-4" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+      <polygon points="56,-4 48,-8 48,0" fill="#dc2626"/>
+      <text x="32" y="-12" font-size="9" font-weight="bold" fill="#dc2626">v_车</text>
+    </g>
+
+    <!-- 前后区域标记提示 -->
+    <text x="60" y="165" font-size="10.5" fill="#2563eb" font-weight="bold">⬅️ 车尾后方：波长变长（稀疏）</text>
+    <text x="320" y="165" font-size="10.5" fill="#dc2626" font-weight="bold">➡️ 车头前方：波长压缩（致密）</text>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="420" height="48" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+    <text id="label-doppler-status" x="58" y="400" font-size="12" font-weight="bold" fill="#dc2626">多普勒压缩比: 前方波长缩短 40%</text>
+    <text id="label-doppler-desc" x="58" y="418" font-size="10.5" fill="#991b1b">波前被压缩，单位时间撞击鼓膜的波峰数量大增！</text>
+  </g>
+
+  <!-- 右侧图形区域：波形与音调对比 -->
+  <g id="pitch-analysis" transform="translate(525, 160)">
+    <!-- 前方听者：尖锐高音 (波峰密集) -->
+    <g transform="translate(0, 5)">
+      <rect x="0" y="0" width="330" height="75" rx="8" fill="#fff1f2" stroke="#fecdd3"/>
+      <text x="15" y="22" font-size="11" font-weight="bold" fill="#dc2626">👂 车前听者：迎面驶来 ➡️ 尖锐高音（高频）</text>
+      <!-- 密集高频波形 -->
+      <path d="M 20 48 Q 28 30, 36 48 T 52 48 T 68 48 T 84 48 T 100 48 T 116 48 T 132 48 T 148 48 T 164 48 T 180 48 T 196 48 T 212 48 T 228 48 T 244 48 T 260 48 T 276 48 T 292 48 T 308 48" fill="none" stroke="#ef4444" stroke-width="2.5"/>
+    </g>
+
+    <!-- 后方听者：低沉粗音 (波峰稀疏) -->
+    <g transform="translate(0, 95)">
+      <rect x="0" y="0" width="330" height="75" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+      <text x="15" y="22" font-size="11" font-weight="bold" fill="#1d4ed8">👂 车后听者：背道远去 ➡️ 低沉粗音（低频）</text>
+      <!-- 稀疏低频波形 -->
+      <path d="M 20 48 Q 40 28, 60 48 T 100 48 T 140 48 T 180 48 T 220 48 T 260 48 T 300 48" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+    </g>
+
+    <!-- 生活中的宇宙应用：红移与蓝移 -->
+    <rect x="0" y="180" width="330" height="35" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="12" y="202" font-size="10" fill="#475569">🔭 天文学应用：星光红移为研究宇宙膨胀提供线索。</text>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="525" y="380" width="330" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="538" y="400" font-size="12" font-weight="bold" fill="#1e40af">核心结论：声速不变，波长被推挤变化</text>
+  <text x="538" y="418" font-size="10.5" fill="#2563eb">迎面来波峰密集频率高，远去时波峰拉开频率低！</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fff1f2" stroke="#fecdd3"/>
+    <text x="15" y="10" font-size="12.5" fill="#9f1239">
+      💡 <tspan font-weight="bold" fill="#dc2626">一句话秒懂：</tspan>
+      车往前跑推着波走，<tspan font-weight="bold">车前波纹挤成堆，听来刺耳尖叫声</tspan>！车开走后波纹被拉开，<tspan fill="#2563eb" font-weight="bold">低沉粗音嗡嗡叫</tspan>，这就是<tspan fill="#dc2626" font-weight="bold">多普勒效应</tspan>！
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const container = document.getElementById('waves-container');
+      const ambulance = document.getElementById('ambulance');
+      const siren = document.getElementById('siren-light');
+      const labelStatus = document.getElementById('label-doppler-status');
+      const labelDesc = document.getElementById('label-doppler-desc');
+
+      const roadStartX = 100;
+      const roadEndX = 390;
+      const centerY = 255;
+      const carSpeed = 45; // 像素/秒
+      const soundSpeed = 110; // 声波扩散速度 像素/秒 (必须大于车速)
+
+      // 预先创建 8 个波圆环池
+      const maxWaves = 8;
+      const wavePool = [];
+      for (let i = 0; i < maxWaves; i++) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('fill', 'none');
+        c.setAttribute('stroke', '#0284c7');
+        c.setAttribute('stroke-width', '2');
+        container.appendChild(c);
+        wavePool.push({ el: c, birthTime: -9999, birthX: 0 });
+      }
+
+      const cycleDuration = 5500;
+      let startTime = null;
+      let lastEmitTime = 0;
+      let waveIdx = 0;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const loopT = (elapsed % cycleDuration) / 1000; // 当前循环秒数
+
+        // 救护车往复匀速平移
+        const carX = roadStartX + (roadEndX - roadStartX) * (loopT / (cycleDuration / 1000));
+        ambulance.setAttribute('transform', 'translate(' + carX.toFixed(1) + ',' + centerY + ')');
+
+        // 警灯红蓝闪烁
+        const blink = Math.floor(elapsed / 180) % 2 === 0;
+        siren.setAttribute('fill', blink ? '#ef4444' : '#38bdf8');
+
+        // 定时发射声波圆圈 (每隔 0.45 秒发射一个)
+        if (elapsed - lastEmitTime > 450) {
+          wavePool[waveIdx].birthTime = elapsed;
+          wavePool[waveIdx].birthX = carX;
+          waveIdx = (waveIdx + 1) % maxWaves;
+          lastEmitTime = elapsed;
+        }
+
+        // 更新每个声波圈的位置与扩散半径
+        for (let i = 0; i < maxWaves; i++) {
+          const w = wavePool[i];
+          const age = (elapsed - w.birthTime) / 1000;
+          if (age >= 0 && age < 3.0) {
+            const r = age * soundSpeed;
+            const op = Math.max(0, 1.0 - age / 3.0);
+            w.el.setAttribute('cx', w.birthX.toFixed(1));
+            w.el.setAttribute('cy', centerY);
+            w.el.setAttribute('r', r.toFixed(1));
+            w.el.setAttribute('stroke-opacity', op.toFixed(2));
+            w.el.setAttribute('stroke', r < 40 ? '#ef4444' : '#0284c7');
+          } else {
+            w.el.setAttribute('r', '0');
+          }
+        }
+
+        // 状态文案
+        if (carX < 200) {
+          labelStatus.textContent = '🚑 救护车起步前行中...';
+          labelDesc.textContent = '警报器不断发出同心圆声波，车头前方开始挤压';
+        } else if (carX > 320) {
+          labelStatus.textContent = '🏁 即将到达终点！车头波纹极密';
+          labelDesc.textContent = '前方听者接收频率提高 1.6 倍，尖叫呼啸震耳欲聋！';
+        } else {
+          labelStatus.textContent = '⚡ 匀速巡航中 | 车速: 45px/s，声速: 110px/s';
+          labelDesc.textContent = '车头向前推挤波长缩短（尖锐），车后波长拉伸延展（低沉）';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>图示为经典声波多普勒效应示意，假设声源速度低于介质中的声速；真实音调还取决于观察者运动及环境。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

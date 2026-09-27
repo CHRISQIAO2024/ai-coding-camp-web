@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>子弹与小球同时落地 | 经典物理实验</title>
+  <meta name='description' content='观察平抛运动与自由落体的竖直运动如何相互独立。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色 -->
+    <linearGradient id="traj-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="drop-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fca5a5"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎯 子弹与小球同时落地 —— 平抛运动与运动独立性实验</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">忽略空气阻力时，同高度水平射出的球与同时释放的球具有相同的竖直运动，因此同时落地。</text>
+  </g>
+
+  <!-- 左侧卡片：发射与落地现场实验 (大舞台) -->
+  <rect x="25" y="85" width="460" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 经典实验原理演示</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">水平黄色激光线始终锁死在相同高度，全程严格水平！</text>
+
+  <!-- 右侧卡片：运动分解与核心秘密 -->
+  <rect x="505" y="85" width="370" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="525" y="118" font-size="15" font-weight="bold" fill="#4f46e5">2. 运动独立性原理（拆解看真相）</text>
+  <text x="525" y="136" font-size="11.5" fill="#64748b">水平飞归水平飞，竖直掉归竖直掉，互不干扰！</text>
+
+  <!-- 左侧图形区域：发射台 (80, 160), 地面 Y = 355 (高 H = 195) -->
+  <g id="experiment-stage">
+    <!-- 地面与刻度 -->
+    <line x1="45" y1="355" x2="465" y2="355" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+    <line x1="45" y1="358" x2="465" y2="358" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+    <!-- 发射高台支架 (X=70 到 80) -->
+    <rect x="65" y="160" width="20" height="195" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+    <!-- 发射枪膛小机构 -->
+    <rect x="55" y="145" width="40" height="16" rx="4" fill="#334155"/>
+    <circle cx="80" cy="153" r="3" fill="#38bdf8"/>
+    <text x="50" y="138" font-size="10" fill="#64748b">发射器高度 H</text>
+
+    <!-- 预先布置的频闪参考“幽灵残影” (t = 0.25, 0.5, 0.75, 1.0) -->
+    <g id="strobe-ghosts" opacity="0.35">
+      <!-- 频闪连线 1 -->
+      <line x1="80" y1="167" x2="167.5" y2="167" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+      <circle cx="80" cy="167" r="5" fill="#ef4444"/>
+      <circle cx="167.5" cy="167" r="5" fill="#0284c7"/>
+      <!-- 频闪连线 2 -->
+      <line x1="80" y1="203.75" x2="255" y2="203.75" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+      <circle cx="80" cy="203.75" r="5" fill="#ef4444"/>
+      <circle cx="255" cy="203.75" r="5" fill="#0284c7"/>
+      <!-- 频闪连线 3 -->
+      <line x1="80" y1="265" x2="342.5" y2="265" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+      <circle cx="80" cy="265" r="5" fill="#ef4444"/>
+      <circle cx="342.5" cy="265" r="5" fill="#0284c7"/>
+      <!-- 落地标记 -->
+      <line x1="80" y1="355" x2="430" y2="355" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <circle cx="80" cy="355" r="5" fill="#ef4444"/>
+      <circle cx="430" cy="355" r="5" fill="#0284c7"/>
+    </g>
+
+    <!-- 自由落体小红球竖直虚线轨道 -->
+    <line x1="80" y1="155" x2="80" y2="355" stroke="#fca5a5" stroke-width="2" stroke-dasharray="4,3"/>
+
+    <!-- 平抛飞弹抛物线轨迹 -->
+    <path id="bullet-trajectory" d="" fill="none" stroke="url(#traj-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 关键核心：连接红球与蓝球的实时水平对齐黄色激光线 -->
+    <line id="sync-laser-line" x1="80" y1="155" x2="80" y2="155" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,3"/>
+    <text id="laser-tag" x="120" y="150" font-size="10" fill="#d97706" font-weight="bold">高度永远完全相同！</text>
+
+    <!-- 球 A：自由落体小红球 -->
+    <g id="ball-drop" transform="translate(80, 155)">
+      <circle cx="0" cy="0" r="9" fill="#ef4444" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      <text x="0" y="3" font-size="8" fill="#ffffff" text-anchor="middle" font-weight="bold">A</text>
+    </g>
+
+    <!-- 球 B：水平飞出的蓝色子弹 -->
+    <g id="bullet-fly" transform="translate(80, 155)">
+      <circle cx="0" cy="0" r="9" fill="#0284c7" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      <text x="0" y="3" font-size="8" fill="#ffffff" text-anchor="middle" font-weight="bold">B</text>
+    </g>
+
+    <!-- 落地冲击光环 (撞击瞬间亮起) -->
+    <circle id="impact-ring-a" cx="80" cy="355" r="14" fill="none" stroke="#ef4444" stroke-width="2" opacity="0"/>
+    <circle id="impact-ring-b" cx="430" cy="355" r="14" fill="none" stroke="#0284c7" stroke-width="2" opacity="0"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="420" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-exp-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0369a1">实验准备: 倒计时发射...</text>
+    <text id="label-exp-desc" x="58" y="418" font-size="10.5" fill="#0284c7">红球A直线下坠，蓝球B以超高速水平射出</text>
+  </g>
+
+  <!-- 右侧图形区域：运动拆解与原理解析 -->
+  <g id="analysis-stage" transform="translate(525, 160)">
+    <!-- 拆解 1：水平方向 (匀速运动) -->
+    <g transform="translate(0, 10)">
+      <rect x="0" y="0" width="330" height="60" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="15" y="22" font-size="11.5" font-weight="bold" fill="#0369a1">➡️ 水平方向：匀速直线运动 (不受力)</text>
+      <!-- 水平运动演示尺与匀等间距点 -->
+      <line x1="25" y1="42" x2="305" y2="42" stroke="#94a3b8" stroke-width="2"/>
+      <circle cx="25" cy="42" r="3.5" fill="#0284c7"/>
+      <circle cx="95" cy="42" r="3.5" fill="#0284c7"/>
+      <circle cx="165" cy="42" r="3.5" fill="#0284c7"/>
+      <circle cx="235" cy="42" r="3.5" fill="#0284c7"/>
+      <circle cx="305" cy="42" r="3.5" fill="#0284c7"/>
+      <text x="210" y="22" font-size="10" fill="#64748b">公式: x = v₀ · t</text>
+      <text x="165" y="55" font-size="9" fill="#64748b" text-anchor="middle">每秒前进的距离完全相同！</text>
+    </g>
+
+    <!-- 拆解 2：竖直方向 (自由落体加速) -->
+    <g transform="translate(0, 85)">
+      <rect x="0" y="0" width="330" height="85" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="15" y="22" font-size="11.5" font-weight="bold" fill="#dc2626">⬇️ 竖直方向：自由落体运动 (只受重力)</text>
+      <text x="210" y="22" font-size="10" fill="#dc2626">公式: y = ½ g · t²</text>
+      <!-- 竖直加速距离增长示意 -->
+      <g transform="translate(25, 38)">
+        <line x1="0" y1="0" x2="280" y2="0" stroke="#94a3b8" stroke-width="1.5"/>
+        <circle cx="10" cy="0" r="3" fill="#ef4444"/>
+        <circle cx="35" cy="0" r="3" fill="#ef4444"/>
+        <circle cx="85" cy="0" r="3" fill="#ef4444"/>
+        <circle cx="160" cy="0" r="3" fill="#ef4444"/>
+        <circle cx="260" cy="0" r="3" fill="#ef4444"/>
+        <text x="140" y="25" font-size="9" fill="#991b1b" text-anchor="middle">下落间距越来越大：1 : 3 : 5 : 7...</text>
+        <text x="140" y="38" font-size="9.5" font-weight="bold" fill="#b91c1c" text-anchor="middle">忽略空气阻力时，两球竖直加速度相同。</text>
+      </g>
+    </g>
+
+    <!-- 实时计时器看板 -->
+    <g transform="translate(0, 185)">
+      <rect x="0" y="0" width="330" height="28" rx="6" fill="#fef3c7" stroke="#fde68a"/>
+      <text id="live-timer" x="165" y="18" font-size="11.5" font-weight="bold" fill="#b45309" text-anchor="middle">⏱️ 下落计时: t = 0.00 秒 | 竖直高度同步中</text>
+    </g>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="525" y="380" width="330" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="538" y="400" font-size="12" font-weight="bold" fill="#1e40af">科学结论：速度再快，也得听地心的号令</text>
+  <text x="538" y="418" font-size="10.5" fill="#2563eb">水平速度不改变竖直方向的重力加速度。</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      忽略空气阻力，横向做<tspan font-weight="bold">匀速运动</tspan>、竖向做<tspan font-weight="bold">自由落体</tspan>；同高度同时出发，竖直加速度相同，因此<tspan fill="#dc2626" font-weight="bold">同时落地</tspan>。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const x0 = 80, y0 = 155;
+      const groundY = 355;
+      const H = groundY - y0; // 200px
+      const rangeX = 350;     // 落地在 430px
+      const targetLandingX = x0 + rangeX;
+
+      const ballDrop = document.getElementById('ball-drop');
+      const bulletFly = document.getElementById('bullet-fly');
+      const syncLaser = document.getElementById('sync-laser-line');
+      const laserTag = document.getElementById('laser-tag');
+      const trajPath = document.getElementById('bullet-trajectory');
+      const ringA = document.getElementById('impact-ring-a');
+      const ringB = document.getElementById('impact-ring-b');
+      const labelStatus = document.getElementById('label-exp-status');
+      const labelDesc = document.getElementById('label-exp-desc');
+      const liveTimer = document.getElementById('live-timer');
+
+      const cycleDuration = 4500; // 4.5秒一个实验大循环
+      const flightDuration = 1800; // 1.8秒飞完全程
+      const pauseDuration = 1500;  // 1.5秒定格展示同时落地震撼结果
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const loopTime = elapsed % cycleDuration;
+
+        let u; // 飞行进度 0 到 1
+        let isFlight = false;
+        let isLanded = false;
+
+        if (loopTime <= flightDuration) {
+          u = loopTime / flightDuration;
+          isFlight = true;
+        } else if (loopTime <= flightDuration + pauseDuration) {
+          u = 1.0;
+          isLanded = true;
+        } else {
+          // 重置过渡
+          u = 0.0;
+        }
+
+        // 竖直下落距离比例: u^2 (匀加速运动)
+        const currentDropY = y0 + H * (u * u);
+
+        // 水平飞行距离比例: u (匀速运动)
+        const currentBulletX = x0 + rangeX * u;
+
+        // 1. 更新自由落体小红球 A
+        ballDrop.setAttribute('transform', 'translate(' + x0 + ',' + currentDropY + ')');
+
+        // 2. 更新水平平抛蓝色飞弹 B
+        bulletFly.setAttribute('transform', 'translate(' + currentBulletX + ',' + currentDropY + ')');
+
+        // 3. 更新水平对齐黄色激光线
+        syncLaser.setAttribute('x1', x0);
+        syncLaser.setAttribute('y1', currentDropY);
+        syncLaser.setAttribute('x2', currentBulletX);
+        syncLaser.setAttribute('y2', currentDropY);
+        laserTag.setAttribute('y', currentDropY - 6);
+        laserTag.setAttribute('x', Math.max(x0 + 30, x0 + (currentBulletX - x0) / 2 - 45));
+
+        // 4. 绘制平抛抛物线轨迹
+        let trajD = 'M ' + x0 + ' ' + y0;
+        const steps = Math.floor(u * 50);
+        for (let i = 0; i <= steps; i++) {
+          const stepU = i / 50;
+          const px = x0 + rangeX * stepU;
+          const py = y0 + H * (stepU * stepU);
+          trajD += ' L ' + px.toFixed(1) + ' ' + py.toFixed(1);
+        }
+        trajD += ' L ' + currentBulletX.toFixed(1) + ' ' + currentDropY.toFixed(1);
+        trajPath.setAttribute('d', trajD);
+
+        // 5. 落地冲击光环与文案
+        const simTime = (u * 1.2).toFixed(2);
+        liveTimer.textContent = '⏱️ 下落计时: t = ' + simTime + ' 秒 | 竖直高度差: 0 像素！';
+
+        if (isLanded) {
+          ringA.setAttribute('opacity', '1');
+          ringB.setAttribute('opacity', '1');
+          labelStatus.textContent = '💥 砰！！【两球同时撞击地面】！';
+          labelDesc.textContent = '不论蓝球飞出了 350px 还是几百米，落地时间分秒不差！';
+        } else if (u > 0.05) {
+          ringA.setAttribute('opacity', '0');
+          ringB.setAttribute('opacity', '0');
+          labelStatus.textContent = '🚀 下落中... 黄色激光线保持绝对水平！';
+          labelDesc.textContent = '小红球竖直加速，飞弹蓝球一边前进一边同速下落';
+        } else {
+          ringA.setAttribute('opacity', '0');
+          ringB.setAttribute('opacity', '0');
+          labelStatus.textContent = '🎯 准备发射：水平飞 vs 垂直掉';
+          labelDesc.textContent = '红球 A 准备自由落体，飞弹 B 准备水平高速发射';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>理想模型：忽略空气阻力，并假设两球从同一高度、同一时刻开始运动。真实实验可能受空气阻力、装置误差等影响。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

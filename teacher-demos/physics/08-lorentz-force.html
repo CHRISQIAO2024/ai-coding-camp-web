@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>磁场中的洛伦兹力 | 经典物理实验</title>
+  <meta name='description' content='观察垂直匀强磁场中的带电粒子如何沿圆形轨迹运动。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="orbit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🌀 磁场中的圆周芭蕾 —— 洛伦兹力（Lorentz Force）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">磁力永远垂直于带电粒子的速度，只拐弯不加速；粒子在磁场里画出一个个完美的圆圈！</text>
+  </g>
+
+  <!-- 左侧卡片：带电粒子在匀强磁场中旋转 -->
+  <rect x="25" y="85" width="460" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 匀强磁场与圆周轨迹（向心力约束）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">垂直向里的磁场中，正电荷受洛伦兹力 F 始终垂直于速度 v</text>
+
+  <!-- 右侧卡片：回旋加速器与地球极光 -->
+  <rect x="505" y="85" width="370" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="525" y="118" font-size="15" font-weight="bold" fill="#4f46e5">2. 宏大应用：回旋加速器与极光守护</text>
+  <text x="525" y="136" font-size="11.5" fill="#64748b">磁场负责让粒子转弯，回旋加速器中的电场负责加速；地球地磁场会影响带电粒子的运动。</text>
+
+  <!-- 左侧图形区域：圆心 (255, 260), 旋转半径 R = 85 -->
+  <g id="lorentz-stage">
+    <!-- 磁场边界背景 (淡蓝网格区域) -->
+    <rect x="150" y="155" width="210" height="210" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-dasharray="4,3"/>
+    
+    <!-- 磁感线垂直向里的小叉叉 × 网格 -->
+    <g fill="#93c5fd" font-size="12" font-weight="bold" text-anchor="middle">
+      <text x="175" y="180">⊗</text><text x="215" y="180">⊗</text><text x="255" y="180">⊗</text><text x="295" y="180">⊗</text><text x="335" y="180">⊗</text>
+      <text x="175" y="220">⊗</text><text x="215" y="220">⊗</text><text x="255" y="220">⊗</text><text x="295" y="220">⊗</text><text x="335" y="220">⊗</text>
+      <text x="175" y="260">⊗</text><text x="215" y="260">⊗</text><text x="255" y="260">⊗</text><text x="295" y="260">⊗</text><text x="335" y="260">⊗</text>
+      <text x="175" y="300">⊗</text><text x="215" y="300">⊗</text><text x="255" y="300">⊗</text><text x="295" y="300">⊗</text><text x="335" y="300">⊗</text>
+      <text x="175" y="340">⊗</text><text x="215" y="340">⊗</text><text x="255" y="340">⊗</text><text x="295" y="340">⊗</text><text x="335" y="340">⊗</text>
+    </g>
+    <text x="345" y="175" font-size="10" fill="#2563eb" font-weight="bold">磁场 B (垂直纸面向里)</text>
+
+    <!-- 粒子完整圆周轨迹 (半径 85) -->
+    <circle cx="255" cy="260" r="85" fill="none" stroke="#e0e7ff" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 动态已走过的高亮彩色轨迹 -->
+    <path id="dynamic-particle-orbit" d="" fill="none" stroke="url(#orbit-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 洛伦兹力矢量箭头 F (红色，始终指向圆心) -->
+    <line id="force-arrow" x1="255" y1="175" x2="255" y2="215" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+    <text id="force-text" x="260" y="200" font-size="9" fill="#dc2626" font-weight="bold">F_洛</text>
+
+    <!-- 速度矢量箭头 v (蓝色，切线方向) -->
+    <line id="velocity-arrow-lor" x1="255" y1="175" x2="295" y2="175" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round"/>
+    <text id="velocity-text" x="298" y="172" font-size="9" fill="#0284c7" font-weight="bold">v</text>
+
+    <!-- 带正电的小粒子 -->
+    <g id="charged-particle" transform="translate(255, 175)">
+      <circle cx="0" cy="0" r="9" fill="#f59e0b" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      <text x="0" y="3.5" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">+</text>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="420" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text id="label-lor-status" x="58" y="400" font-size="12" font-weight="bold" fill="#1e40af">受力特征: F 永远与 v 垂直成 90° 直角</text>
+    <text id="label-lor-desc" x="58" y="418" font-size="10.5" fill="#2563eb">洛伦兹力不做任何功！粒子动能与速率永远不变，只转圈！</text>
+  </g>
+
+  <!-- 右侧图形区域：回旋加速器与大自然极光 -->
+  <g id="app-stage" transform="translate(525, 160)">
+    <!-- 回旋加速器螺旋轨道示意图 -->
+    <g transform="translate(0, 10)">
+      <rect x="0" y="0" width="330" height="75" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="15" y="22" font-size="11" font-weight="bold" fill="#4f46e5">🌀 回旋加速器：磁场拐弯，电场加速</text>
+      <!-- 螺旋扩散线 -->
+      <path d="M 40 48 Q 50 35, 70 48 T 110 48 T 160 48 T 220 48 T 290 48" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+      <text x="250" y="42" font-size="9" fill="#6366f1">高能粒子轰击！</text>
+    </g>
+
+    <!-- 大自然奇迹：地球磁场与北极光 -->
+    <g transform="translate(0, 95)">
+      <rect x="0" y="0" width="330" height="85" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="15" y="22" font-size="11" font-weight="bold" fill="#15803d">🌌 地球保护盾：极光（Aurora）的由来</text>
+      <text x="15" y="42" font-size="10" fill="#166534">太阳向地球喷发致命的高速带电粒子风暴；</text>
+      <text x="15" y="58" font-size="10" fill="#166534">幸亏地磁场的洛伦兹力使部分带电粒子沿磁场进入高纬区域，</text>
+      <text x="15" y="74" font-size="10" font-weight="bold" fill="#15803d">撞击大气层变成了天空中绚丽梦幻的北极光！</text>
+    </g>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="525" y="380" width="330" height="48" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="538" y="400" font-size="12" font-weight="bold" fill="#0f172a">向心力方程：q·v·B = m·v² / r</text>
+  <text x="538" y="418" font-size="10.5" fill="#64748b">轨道半径 r = mv / (qB)，速度越快圈子越大！</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      电荷冲进磁场里，磁力直角拉住它；<tspan font-weight="bold">只拐弯来不加速，跳起优美圆舞曲</tspan>！这就是神奇的<tspan fill="#4f46e5" font-weight="bold">洛伦兹力</tspan>！
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 255, cy = 260, R = 85;
+      const particle = document.getElementById('charged-particle');
+      const forceArrow = document.getElementById('force-arrow');
+      const vArrow = document.getElementById('velocity-arrow-lor');
+      const forceText = document.getElementById('force-text');
+      const vText = document.getElementById('velocity-text');
+      const dynOrbit = document.getElementById('dynamic-particle-orbit');
+      const labelStatus = document.getElementById('label-lor-status');
+      const labelDesc = document.getElementById('label-lor-desc');
+
+      const cycleDuration = 4500;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        // 逆时针匀速圆周运动: theta 从 0 到 2*PI
+        const theta = ((elapsed % cycleDuration) / cycleDuration) * 2 * Math.PI;
+
+        const px = cx + R * Math.cos(theta);
+        const py = cy - R * Math.sin(theta);
+
+        particle.setAttribute('transform', 'translate(' + px.toFixed(1) + ',' + py.toFixed(1) + ')');
+
+        // 洛伦兹力向心矢量: 从 (px, py) 指向圆心 (cx, cy)
+        const fLen = 35;
+        const fx = -Math.cos(theta) * fLen;
+        const fy = Math.sin(theta) * fLen;
+        forceArrow.setAttribute('x1', px.toFixed(1));
+        forceArrow.setAttribute('y1', py.toFixed(1));
+        forceArrow.setAttribute('x2', (px + fx).toFixed(1));
+        forceArrow.setAttribute('y2', (py + fy).toFixed(1));
+        forceText.setAttribute('x', (px + fx * 0.7 + 6).toFixed(1));
+        forceText.setAttribute('y', (py + fy * 0.7).toFixed(1));
+
+        // 速度切线矢量: 逆时针方向，垂直于半径
+        const vLen = 35;
+        const vx = -Math.sin(theta) * vLen;
+        const vy = -Math.cos(theta) * vLen;
+        vArrow.setAttribute('x1', px.toFixed(1));
+        vArrow.setAttribute('y1', py.toFixed(1));
+        vArrow.setAttribute('x2', (px + vx).toFixed(1));
+        vArrow.setAttribute('y2', (py + vy).toFixed(1));
+        vText.setAttribute('x', (px + vx * 1.1).toFixed(1));
+        vText.setAttribute('y', (py + vy * 1.1).toFixed(1));
+
+        // 动态绘制已转过的彩色尾迹
+        let d = 'M ' + (cx + R) + ' ' + cy;
+        const progressFrac = (elapsed % cycleDuration) / cycleDuration;
+        const steps = Math.floor(progressFrac * 60);
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / 60) * 2 * Math.PI;
+          const x = cx + R * Math.cos(t);
+          const y = cy - R * Math.sin(t);
+          d += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        d += ' L ' + px.toFixed(1) + ' ' + py.toFixed(1);
+        dynOrbit.setAttribute('d', d);
+
+        // 状态更新
+        const deg = ((theta * 180) / Math.PI).toFixed(0);
+        labelStatus.textContent = '粒子角度: ' + deg + '° | 速率 v 恒定不变';
+        labelDesc.textContent = '力矢 F 始终指向中心充当向心力，速度矢 v 始终相切！';
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>图中设定粒子速度垂直于匀强磁场且忽略其他力，因此轨迹为圆；若速度含沿磁场分量，轨迹一般为螺旋线。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

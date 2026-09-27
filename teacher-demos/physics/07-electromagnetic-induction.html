@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>法拉第电磁感应 | 经典物理实验</title>
+  <meta name='description' content='观察磁铁与线圈相对运动时磁通量变化及感应电流方向。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">⚡ 磁铁跳舞生出电流 —— 法拉第电磁感应（Induction）</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">磁铁插进去灯泡亮，磁铁拔出来灯泡又亮；只要停下不动，电立刻消失！这就是人类所有发电机的母亲！</text>
+  </g>
+
+  <!-- 左侧卡片：磁铁穿插线圈实况 -->
+  <rect x="25" y="85" width="460" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#b45309">1. 条形磁铁插拔线圈（磁通量变化）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">动则生电，静则断电：穿过线圈的磁通量变化时可产生感应电流</text>
+
+  <!-- 右侧卡片：电流表与灯泡响应 -->
+  <rect x="505" y="85" width="370" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="525" y="118" font-size="15" font-weight="bold" fill="#dc2626">2. 灵敏电流表与小灯泡（即时感应）</text>
+  <text x="525" y="136" font-size="11.5" fill="#64748b">插入时电流正向偏转，拔出时反向偏转，停住不动归零！</text>
+
+  <!-- 左侧图形区域：铜线圈位于 X=260 到 350, Y=260 -->
+  <g id="induction-stage">
+    <!-- 铜线圈螺线管 (金色线圈环) -->
+    <g id="solenoid-coils" transform="translate(260, 260)">
+      <rect x="-10" y="-35" width="100" height="70" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="3,2"/>
+      <ellipse cx="10" cy="0" rx="8" ry="32" fill="none" stroke="#d97706" stroke-width="4"/>
+      <ellipse cx="30" cy="0" rx="8" ry="32" fill="none" stroke="#d97706" stroke-width="4"/>
+      <ellipse cx="50" cy="0" rx="8" ry="32" fill="none" stroke="#d97706" stroke-width="4"/>
+      <ellipse cx="70" cy="0" rx="8" ry="32" fill="none" stroke="#d97706" stroke-width="4"/>
+      <text x="40" y="52" font-size="10.5" fill="#b45309" font-weight="bold" text-anchor="middle">多匝铜线圈</text>
+    </g>
+
+    <!-- 往复移动的条形磁铁 (N红 S蓝) -->
+    <g id="bar-magnet" transform="translate(130, 260)">
+      <!-- 磁感线虚线 -->
+      <path d="M 40 -12 C 70 -30, 70 30, 40 12" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <path d="M 40 -20 C 90 -45, 90 45, 40 20" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <!-- S极 (蓝) -->
+      <rect x="-40" y="-18" width="40" height="36" fill="#0284c7" rx="4"/>
+      <text x="-20" y="5" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">S</text>
+      <!-- N极 (红) -->
+      <rect x="0" y="-18" width="40" height="36" fill="#ef4444" rx="4"/>
+      <text x="20" y="5" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">N</text>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="420" height="48" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+    <text id="label-ind-status" x="58" y="400" font-size="12" font-weight="bold" fill="#b45309">磁铁运动中: 正在插入线圈 ➡️ 产生正向电流</text>
+    <text id="label-ind-desc" x="58" y="418" font-size="10.5" fill="#d97706">磁感线条数剧烈变化，线圈产生感应电动势！</text>
+  </g>
+
+  <!-- 右侧图形区域：灵敏电流计与电灯泡 -->
+  <g id="meter-stage" transform="translate(525, 160)">
+    <!-- 灵敏电流计圆表盘 (中心 100, 110) -->
+    <g transform="translate(100, 100)">
+      <circle cx="0" cy="0" r="55" fill="#f8fafc" stroke="#334155" stroke-width="3" filter="url(#soft-shadow)"/>
+      <text x="0" y="-30" font-size="12" font-weight="bold" fill="#334155" text-anchor="middle">G (检流计)</text>
+      <!-- 刻度弧与零刻度 -->
+      <path d="M -35 -10 A 40 40 0 0 1 35 -10" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+      <line x1="0" y1="-38" x2="0" y2="-44" stroke="#dc2626" stroke-width="2"/>
+      <text x="0" y="-20" font-size="9" fill="#94a3b8" text-anchor="middle">0</text>
+      <text x="-35" y="-14" font-size="8" fill="#94a3b8">-I</text>
+      <text x="35" y="-14" font-size="8" fill="#94a3b8">+I</text>
+      <!-- 偏转表针 (从 0,0 向上偏转) -->
+      <line id="galvano-needle" x1="0" y1="5" x2="0" y2="-38" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="0" cy="5" r="4" fill="#0f172a"/>
+    </g>
+
+    <!-- 感应发光小灯泡 (中心 260, 100) -->
+    <g transform="translate(260, 100)">
+      <!-- 灯泡发光光晕 -->
+      <circle id="bulb-glow" cx="0" cy="0" r="32" fill="#fbbf24" opacity="0.6"/>
+      <!-- 灯泡玻璃罩 -->
+      <circle cx="0" cy="0" r="20" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+      <path d="M -6 10 L -6 22 L 6 22 L 6 10 Z" fill="#94a3b8"/>
+      <!-- 灯丝 -->
+      <path d="M -8 5 Q 0 -12, 8 5" fill="none" stroke="#ea580c" stroke-width="1.8"/>
+      <text x="0" y="38" font-size="11" font-weight="bold" fill="#b45309" text-anchor="middle">感应电灯</text>
+    </g>
+
+    <text x="175" y="195" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">💡 磁铁停在肚子里不动，灯为什么立刻灭？</text>
+    <text x="175" y="215" font-size="10" fill="#64748b" text-anchor="middle">因为磁通量没有发生“变化”（dΦ/dt = 0），必须动起来才有电！</text>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="525" y="380" width="330" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="538" y="400" font-size="12" font-weight="bold" fill="#1e40af">工业心脏：人类所有电力的统一源泉</text>
+  <text x="538" y="418" font-size="10.5" fill="#2563eb">许多发电机通过电磁感应将机械能转化为电能。</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="15" y="10" font-size="12.5" fill="#78350f">
+      💡 <tspan font-weight="bold" fill="#b45309">一句话秒懂：</tspan>
+      磁铁推进去灯泡亮，磁铁拔出来灯泡亮；<tspan font-weight="bold">只要停手不动，电立刻消失</tspan>！磁通量变化可产生感应电流，这就是伟大的<tspan fill="#b45309" font-weight="bold">电磁感应</tspan>！
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const magnet = document.getElementById('bar-magnet');
+      const needle = document.getElementById('galvano-needle');
+      const bulbGlow = document.getElementById('bulb-glow');
+      const labelStatus = document.getElementById('label-ind-status');
+      const labelDesc = document.getElementById('label-ind-desc');
+
+      const startX = 130;
+      const insideX = 260;
+      const cycleDuration = 5000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+
+        // 磁铁运动规律：
+        // 0~0.4: 插入 (速度为正)
+        // 0.4~0.5: 停顿 (速度为0)
+        // 0.5~0.9: 拔出 (速度为负)
+        // 0.9~1.0: 停顿 (速度为0)
+        let magX, velocity = 0;
+        if (progress < 0.4) {
+          const u = progress / 0.4;
+          magX = startX + (insideX - startX) * u;
+          velocity = 1.0; // 正向速度
+        } else if (progress < 0.5) {
+          magX = insideX;
+          velocity = 0; // 静止不动
+        } else if (progress < 0.9) {
+          const u = (progress - 0.5) / 0.4;
+          magX = insideX - (insideX - startX) * u;
+          velocity = -1.0; // 反向速度
+        } else {
+          magX = startX;
+          velocity = 0; // 静止不动
+        }
+
+        magnet.setAttribute('transform', 'translate(' + magX.toFixed(1) + ', 260)');
+
+        // 电流表指针偏转角 (度) 与 灯泡亮度
+        const needleAngle = velocity * 35; // 正偏或负偏 35度
+        needle.setAttribute('transform', 'rotate(' + needleAngle.toFixed(1) + ', 0, 5)');
+
+        const brightness = Math.abs(velocity);
+        bulbGlow.setAttribute('opacity', (brightness * 0.7).toFixed(2));
+        bulbGlow.setAttribute('r', (brightness * 32).toFixed(1));
+
+        // 状态文案
+        if (velocity > 0.5) {
+          labelStatus.textContent = '➡️ 磁铁快速插进线圈中！【正向电流产生】';
+          labelDesc.textContent = '磁感线迅速密集穿透线圈，电流表右偏，灯泡瞬间点亮！';
+        } else if (velocity < -0.5) {
+          labelStatus.textContent = '⬅️ 磁铁快速拔出线圈！【反向电流产生】';
+          labelDesc.textContent = '磁感线迅速撤出，电流方向逆转反偏，灯泡再次亮起！';
+        } else {
+          labelStatus.textContent = '⏸️ 磁铁停在原地不动【电流瞬间归 0】！';
+          labelDesc.textContent = '磁场再强，只要不变化就绝不生电！电表归零，灯泡熄灭。';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>感应电动势与穿过线圈的磁通量变化有关；并非只有磁场本身变化，线圈或磁体相对运动也可改变磁通量。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>

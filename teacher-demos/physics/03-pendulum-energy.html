@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>单摆的动能与势能 | 经典物理实验</title>
+  <meta name='description' content='观察摆球运动中动能与重力势能的相互转化。'>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; line-height: 1.7; }
+    footer a { color: #0369a1; }
+    .model-note { max-width: 900px; margin: 0 auto; padding: 0 20px 8px; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="bar-ep" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="bar-ek" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#f87171"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">⚖️ 动能与势能的跷跷板 —— 机械能守恒单摆的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">荡到最高点时动能为0、势能拉满；穿过最低点时势能归0、飞速冲刺；在理想无阻尼模型中，两者之和保持不变。</text>
+  </g>
+
+  <!-- 左侧卡片：单摆秋千实境 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 左右摇摆的物理单摆（运动实景）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">观察小球在最高点（暂歇）与最低点（飞驰）的高低差</text>
+
+  <!-- 右侧卡片：能量实时监测柱 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#16a34a">2. 能量柱实时监测表（动能 + 势能 = 常数）</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">绿柱升则红柱降，红柱升则绿柱降，蓝柱总和稳如泰山！</text>
+
+  <!-- 左侧图形区域：摆动支点 (230, 160), 绳长 L = 160 -->
+  <g id="pendulum-stage">
+    <!-- 固定支架天花板 -->
+    <rect x="180" y="152" width="100" height="8" rx="2" fill="#334155"/>
+    <circle cx="230" cy="160" r="5" fill="#0f172a"/>
+
+    <!-- 摆动轨迹参考虚线弧 -->
+    <path id="swing-arc-guide" d="" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,3"/>
+
+    <!-- 最低点高度基线 (y = 160 + 160 = 320) -->
+    <line x1="120" y1="320" x2="340" y2="320" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="120" y="335" font-size="10" fill="#94a3b8">最低势能基准 (h=0)</text>
+
+    <!-- 动态摆绳 -->
+    <line id="pendulum-string" x1="230" y1="160" x2="230" y2="320" stroke="#475569" stroke-width="2.5"/>
+
+    <!-- 动态摆球 -->
+    <g id="pendulum-bob" transform="translate(230, 320)">
+      <circle cx="0" cy="0" r="14" fill="#0284c7" stroke="#ffffff" stroke-width="2.5" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="5" fill="#38bdf8"/>
+    </g>
+
+    <!-- 速度矢量箭头 -->
+    <line id="pendulum-v-arrow" x1="230" y1="320" x2="270" y2="320" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-pend-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0369a1">摆动状态: 经过平衡位置</text>
+    <text id="label-pend-desc" x="58" y="418" font-size="10.5" fill="#0284c7">高度最低势能为0，速度达到顶峰最大值！</text>
+  </g>
+
+  <!-- 右侧图形区域：三根能量柱 -->
+  <g id="energy-bars-stage" transform="translate(500, 160)">
+    <!-- 背景槽 1: 重力势能 Ep (绿) -->
+    <rect x="30" y="30" width="50" height="140" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <rect id="bar-ep" x="30" y="170" width="50" height="0" rx="8" fill="url(#bar-ep)"/>
+    <text x="55" y="190" font-size="12" font-weight="bold" fill="#15803d" text-anchor="middle">势能 Ep</text>
+    <text id="val-ep" x="55" y="205" font-size="11" fill="#16a34a" text-anchor="middle">0%</text>
+
+    <!-- 运算符号 + -->
+    <text x="110" y="110" font-size="22" font-weight="bold" fill="#64748b" text-anchor="middle">+</text>
+
+    <!-- 背景槽 2: 动能 Ek (红) -->
+    <rect x="135" y="30" width="50" height="140" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <rect id="bar-ek" x="135" y="30" width="50" height="140" rx="8" fill="url(#bar-ek)"/>
+    <text x="160" y="190" font-size="12" font-weight="bold" fill="#dc2626" text-anchor="middle">动能 Ek</text>
+    <text id="val-ek" x="160" y="205" font-size="11" fill="#ef4444" text-anchor="middle">100%</text>
+
+    <!-- 运算符号 = -->
+    <text x="215" y="110" font-size="22" font-weight="bold" fill="#64748b" text-anchor="middle">=</text>
+
+    <!-- 背景槽 3: 总机械能 E (蓝, 恒定满格) -->
+    <rect x="240" y="30" width="55" height="140" rx="8" fill="#0284c7" filter="url(#soft-shadow)"/>
+    <text x="267" y="190" font-size="12" font-weight="bold" fill="#0369a1" text-anchor="middle">总能 E</text>
+    <text x="267" y="205" font-size="11" font-weight="bold" fill="#0284c7" text-anchor="middle">恒定 100%</text>
+  </g>
+
+  <!-- 右侧底部看板 -->
+  <rect x="485" y="380" width="370" height="48" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="498" y="400" font-size="12" font-weight="bold" fill="#15803d">物理铁律：能量不会凭空产生或消失</text>
+  <text x="498" y="418" font-size="10.5" fill="#16a34a">理想单摆中，机械能在动能与势能间相互转化。</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      高处<tspan fill="#16a34a" font-weight="bold">势能较大</tspan>，低处<tspan fill="#dc2626" font-weight="bold">动能较大</tspan>；在理想无阻尼单摆中，总机械能保持不变。
+    </text>
+  </g>
+
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 230, cy = 160, L = 160;
+      const maxAngle = (38 * Math.PI) / 180; // 最大摆角 38度
+
+      // 预先绘制摆动弧形导引虚线
+      const arcGuide = document.getElementById('swing-arc-guide');
+      let arcD = '';
+      for (let deg = -38; deg <= 38; deg += 2) {
+        const rad = (deg * Math.PI) / 180;
+        const x = cx + L * Math.sin(rad);
+        const y = cy + L * Math.cos(rad);
+        arcD += (deg === -38 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      arcGuide.setAttribute('d', arcD);
+
+      const pendString = document.getElementById('pendulum-string');
+      const pendBob = document.getElementById('pendulum-bob');
+      const vArrow = document.getElementById('pendulum-v-arrow');
+      const barEp = document.getElementById('bar-ep');
+      const barEk = document.getElementById('bar-ek');
+      const valEp = document.getElementById('val-ep');
+      const valEk = document.getElementById('val-ek');
+      const labelStatus = document.getElementById('label-pend-status');
+      const labelDesc = document.getElementById('label-pend-desc');
+
+      const cycleDuration = 3200; // 3.2秒一个完整往复摆动
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const phase = (elapsed % cycleDuration) / cycleDuration;
+        
+        // 简谐摆角 θ(t) = maxAngle * cos(omega * t)
+        const omega = 2 * Math.PI;
+        const theta = maxAngle * Math.cos(omega * phase);
+        const deg = (theta * 180) / Math.PI;
+
+        const bobX = cx + L * Math.sin(theta);
+        const bobY = cy + L * Math.cos(theta);
+
+        pendString.setAttribute('x2', bobX.toFixed(1));
+        pendString.setAttribute('y2', bobY.toFixed(1));
+        pendBob.setAttribute('transform', 'translate(' + bobX.toFixed(1) + ',' + bobY.toFixed(1) + ')');
+
+        // 速度切线矢量: v ∝ -sin(omega * phase)
+        const vScale = -Math.sin(omega * phase) * 35;
+        const vx = vScale * Math.cos(theta);
+        const vy = -vScale * Math.sin(theta);
+        vArrow.setAttribute('x1', bobX.toFixed(1));
+        vArrow.setAttribute('y1', bobY.toFixed(1));
+        vArrow.setAttribute('x2', (bobX + vx).toFixed(1));
+        vArrow.setAttribute('y2', (bobY + vy).toFixed(1));
+
+        // 能量计算:
+        // Ep ∝ (1 - cos(theta)) / (1 - cos(maxAngle))
+        const epFrac = Math.pow(Math.cos(omega * phase), 2); // 准确正比于角度平方
+        const ekFrac = 1.0 - epFrac;
+
+        // 更新能量柱高度 (最大高度 140px, 底部 y=170)
+        const epH = epFrac * 140;
+        barEp.setAttribute('y', (170 - epH).toFixed(1));
+        barEp.setAttribute('height', epH.toFixed(1));
+        valEp.textContent = (epFrac * 100).toFixed(0) + '%';
+
+        const ekH = ekFrac * 140;
+        barEk.setAttribute('y', (170 - ekH).toFixed(1));
+        barEk.setAttribute('height', ekH.toFixed(1));
+        valEk.textContent = (ekFrac * 100).toFixed(0) + '%';
+
+        // 状态文案
+        if (epFrac > 0.92) {
+          labelStatus.textContent = '⏸️ 到达最高顶点！动能为 0，势能 100%';
+          labelDesc.textContent = '小球瞬间静止，所有动能全部转化为重力势能';
+        } else if (ekFrac > 0.92) {
+          labelStatus.textContent = '🚀 掠过最低平衡点！势能为 0，动能 100%';
+          labelDesc.textContent = '重力势能全部释放，速度达到最大爆发冲刺！';
+        } else {
+          labelStatus.textContent = '⚖️ 能量交替中 | 动能: ' + (ekFrac * 100).toFixed(0) + '% + 势能: ' + (epFrac * 100).toFixed(0) + '%';
+          labelDesc.textContent = '绿柱与红柱相互此消彼长，总和蓝柱永远保持 100%';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+ <footer><p class='model-note'>机械能守恒对应理想化无阻尼模型；真实单摆会因空气阻力和支点摩擦逐渐衰减。</p><a href='../../gallery/#physics'>返回经典物理实验系列</a> · 教师演示整理：乔瑞 · AI 辅助制作</footer>
+</body>
+</html>
