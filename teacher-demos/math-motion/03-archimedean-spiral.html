@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>阿基米德螺线 | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察匀速转动与匀速径向移动如何共同生成阿基米德螺线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="spiral-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="50%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🌀 唱片机上的小蚂蚁 —— 阿基米德螺线（Spiral）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">指针匀速旋转，小蚂蚁匀速向外爬行；两者结合，就画出了圈与圈之间距离永远相等的“神奇蚊香”！</text>
+  </g>
+
+  <!-- 左侧卡片：旋转指针与爬行蚂蚁 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#059669">1. 旋转 + 直线爬行（几何生成）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">指针转得匀速，蚂蚁爬得匀速，合力画出最美蚊香</text>
+
+  <!-- 右侧卡片：等间距卡尺测量与自然对比 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#0284c7">2. 为什么圈距永远相等？（等间距特性）</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">每转完一整圈，与前一圈的间距恒定为 d = 2π·b</text>
+
+  <!-- 左侧图形区域：圆心 (230, 270) -->
+  <g id="spiral-stage">
+    <!-- 背景同心参考圆 -->
+    <circle cx="230" cy="270" r="30" fill="none" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <circle cx="230" cy="270" r="60" fill="none" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <circle cx="230" cy="270" r="90" fill="none" stroke="#f1f5f9" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- 坐标十字线 -->
+    <line x1="120" y1="270" x2="340" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="230" y1="160" x2="230" y2="380" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- 完整的静态参考螺线 (浅灰虚线) -->
+    <path id="static-spiral-path" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 动态绘制的彩色螺线 -->
+    <path id="dynamic-spiral-path" d="" fill="none" stroke="url(#spiral-grad)" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 旋转的机械臂/钟表分针 -->
+    <line id="spiral-ray" x1="230" y1="270" x2="330" y2="270" stroke="#047857" stroke-width="2" stroke-dasharray="4,2"/>
+    <circle cx="230" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 爬行的小蚂蚁/标记红点 -->
+    <g id="spiral-ant" transform="translate(230, 270)">
+      <circle cx="0" cy="0" r="7.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="2.5" fill="#b45309"/>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text id="label-spiral-status" x="58" y="400" font-size="12" font-weight="bold" fill="#065f46">蚂蚁爬行圈数: 0.00 圈</text>
+    <text id="label-spiral-desc" x="58" y="418" font-size="10.5" fill="#047857">离圆心距离 r 与转角 θ 成严格正比例！</text>
+  </g>
+
+  <!-- 右侧图形区域：等间距测量与蚊香展示 (中心 670, 260) -->
+  <g id="caliper-stage">
+    <!-- 右侧完整的多圈蚊香螺线 -->
+    <path id="full-spiral-right" d="" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 沿正右方向的等间距测量卡尺 (在 y=260, x 从 670 往右) -->
+    <line x1="670" y1="260" x2="790" y2="260" stroke="#cbd5e1" stroke-width="1.5"/>
+    <circle cx="670" cy="260" r="3.5" fill="#334155"/>
+    <circle cx="700" cy="260" r="4" fill="#0284c7"/>
+    <circle cx="730" cy="260" r="4" fill="#0284c7"/>
+    <circle cx="760" cy="260" r="4" fill="#0284c7"/>
+
+    <!-- 测量双箭头 1 -->
+    <line x1="700" y1="235" x2="730" y2="235" stroke="#ea580c" stroke-width="2"/>
+    <line x1="700" y1="230" x2="700" y2="240" stroke="#ea580c" stroke-width="2"/>
+    <line x1="730" y1="230" x2="730" y2="240" stroke="#ea580c" stroke-width="2"/>
+    <text x="704" y="228" font-size="10.5" font-weight="bold" fill="#ea580c">间距 d</text>
+
+    <!-- 测量双箭头 2 -->
+    <line x1="730" y1="235" x2="760" y2="235" stroke="#ea580c" stroke-width="2"/>
+    <line x1="760" y1="230" x2="760" y2="240" stroke="#ea580c" stroke-width="2"/>
+    <text x="734" y="228" font-size="10.5" font-weight="bold" fill="#ea580c">间距 d</text>
+
+    <text x="670" y="325" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">📏 每一圈的距离永远不变（d = 30px）！</text>
+    <text x="670" y="345" font-size="10" fill="#64748b" text-anchor="middle">生活实例：蚊香盘、黑胶唱片音轨、卷起来的卷尺</text>
+
+    <!-- 右侧状态看板 -->
+    <rect x="485" y="380" width="370" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="498" y="400" font-size="12" font-weight="bold" fill="#1e40af">知识卡片：它和台风/蜗牛壳的区别</text>
+    <text x="498" y="418" font-size="10.5" fill="#2563eb">蚊香是【等间距螺线】；蜗牛壳/银河系是【圈距越来越宽的对数螺线】</text>
+  </g>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="15" y="10" font-size="12.5" fill="#065f46">
+      💡 <tspan font-weight="bold" fill="#059669">一句话秒懂：</tspan>
+      指针<tspan font-weight="bold">匀速转圈圈</tspan>，小蚂蚁<tspan font-weight="bold">匀速向外爬</tspan>！转得稳、爬得直，圈与圈之间距离永远一样宽，就是神奇的<tspan fill="#059669" font-weight="bold">阿基米德螺线</tspan>！
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 230, cy = 270;
+      const b_scale = 5; // 每弧度增长 5px, 2*PI约等于 31.4px
+      const totalTurns = 3; // 走 3 整圈
+      const maxTheta = totalTurns * 2 * Math.PI; // 6*PI
+      const maxR = b_scale * maxTheta; // 约 94.2px
+
+      // 预先绘制左侧静态参考螺线
+      const staticSpiral = document.getElementById('static-spiral-path');
+      let staticD = 'M ' + cx + ' ' + cy;
+      for (let deg = 0; deg <= 360 * totalTurns; deg += 3) {
+        const theta = (deg * Math.PI) / 180;
+        const r = b_scale * theta;
+        const x = cx + r * Math.cos(theta);
+        const y = cy - r * Math.sin(theta);
+        staticD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      staticSpiral.setAttribute('d', staticD);
+
+      // 绘制右侧静态完整螺线
+      const rightSpiral = document.getElementById('full-spiral-right');
+      const rcx = 670, rcy = 260;
+      let rightD = 'M ' + rcx + ' ' + rcy;
+      for (let deg = 0; deg <= 360 * totalTurns; deg += 3) {
+        const theta = (deg * Math.PI) / 180;
+        const r = b_scale * theta;
+        const x = rcx + r * Math.cos(theta);
+        const y = rcy - r * Math.sin(theta);
+        rightD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      rightSpiral.setAttribute('d', rightD);
+
+      const dynSpiral = document.getElementById('dynamic-spiral-path');
+      const spiralRay = document.getElementById('spiral-ray');
+      const spiralAnt = document.getElementById('spiral-ant');
+      const labelStatus = document.getElementById('label-spiral-status');
+      const labelDesc = document.getElementById('label-spiral-desc');
+
+      const cycleDuration = 7000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const phase = (elapsed % cycleDuration) / cycleDuration;
+        const t = Math.min(1.0, phase / 0.88); // 留短暂定格
+
+        const currentTheta = t * maxTheta;
+        const currentDeg = (currentTheta * 180) / Math.PI;
+        const currentR = b_scale * currentTheta;
+
+        // 当前蚂蚁位置
+        const antX = cx + currentR * Math.cos(currentTheta);
+        const antY = cy - currentR * Math.sin(currentTheta);
+
+        // 指针末端位置（长度稍大于 maxR）
+        const rayLen = maxR + 15;
+        const rayEndX = cx + rayLen * Math.cos(currentTheta);
+        const rayEndY = cy - rayLen * Math.sin(currentTheta);
+        spiralRay.setAttribute('x2', rayEndX);
+        spiralRay.setAttribute('y2', rayEndY);
+
+        // 蚂蚁移动
+        spiralAnt.setAttribute('transform', 'translate(' + antX + ',' + antY + ')');
+
+        // 动态绘制已爬出的螺线
+        let d = 'M ' + cx + ' ' + cy;
+        const steps = Math.floor(currentDeg);
+        for (let deg = 0; deg <= steps; deg += 3) {
+          const th = (deg * Math.PI) / 180;
+          const r = b_scale * th;
+          const x = cx + r * Math.cos(th);
+          const y = cy - r * Math.sin(th);
+          d += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        d += ' L ' + antX.toFixed(1) + ' ' + antY.toFixed(1);
+        dynSpiral.setAttribute('d', d);
+
+        // 文案更新
+        const turns = currentTheta / (2 * Math.PI);
+        labelStatus.textContent = '小蚂蚁已转完: ' + turns.toFixed(2) + ' 圈 | 距离圆心: ' + currentR.toFixed(0) + ' px';
+        if (turns < 0.2) {
+          labelDesc.textContent = '🐜 蚂蚁刚从圆心起步，向外匀速爬行';
+        } else if (turns >= 2.8) {
+          labelDesc.textContent = '🏁 完成整整 3 圈！圈距严丝合缝，始终保持相同';
+        } else {
+          labelDesc.textContent = '🔄 旋转角与向外距离齐头并进，留下完美等距轨迹';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

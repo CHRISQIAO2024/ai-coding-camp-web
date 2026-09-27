@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>圆的渐开线 | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察一根绷紧的绳子从圆上逐渐展开时，绳端形成的渐开线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="involute-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="gear-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🧵 解开毛线球与齿轮的牙齿 —— 圆的渐开线（Involute）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">绷紧的绳子从圆柱上逐渐展开，绳端描出的轨迹就是圆的渐开线。</text>
+  </g>
+
+  <!-- 左侧卡片：毛线球解绳与轨迹 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 绷紧绳子向外展开（几何生成）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">绳子始终与基圆相切，剥开的长度等于圆弧长</text>
+
+  <!-- 右侧卡片：工业齿轮咬合 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#d97706">2. 现代工业的基石：齿轮的牙齿</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">许多常见齿轮采用渐开线齿廓，以保持稳定的传动比。</text>
+
+  <!-- 左侧图形区域：基圆中心 (200, 270), 基圆半径 Rb = 42 -->
+  <g id="involute-stage">
+    <!-- 坐标十字线 -->
+    <line x1="100" y1="270" x2="340" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="200" y1="160" x2="200" y2="380" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- 基圆 (毛线球/圆柱) -->
+    <circle cx="200" cy="270" r="42" fill="#f8fafc" stroke="#94a3b8" stroke-width="8"/>
+    <circle cx="200" cy="270" r="42" fill="none" stroke="#0284c7" stroke-width="2"/>
+    <circle cx="200" cy="270" r="4" fill="#0369a1"/>
+    <text x="200" y="274" font-size="10" fill="#64748b" text-anchor="middle">基圆</text>
+
+    <!-- 静态参考渐开线 (浅灰虚线) -->
+    <path id="static-involute-path" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 动态渐开线彩色轨迹 -->
+    <path id="dynamic-involute-path" d="" fill="none" stroke="url(#involute-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 绷紧的切线绳子 (从剥离切点到绳端) -->
+    <line id="taut-string" x1="242" y1="270" x2="242" y2="270" stroke="#f59e0b" stroke-width="3"/>
+    <!-- 剥离切点 -->
+    <circle id="detach-point" cx="242" cy="270" r="4" fill="#d97706"/>
+    <!-- 绳端笔尖 (生成渐开线的点) -->
+    <circle id="string-tip" cx="242" cy="270" r="7" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" filter="url(#soft-shadow)"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-involute-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0369a1">展开角度: 0° (贴紧基圆起点)</text>
+    <text id="label-involute-desc" x="58" y="418" font-size="10.5" fill="#0284c7">绷直的切线长 = 剥开的圆弧长，笔尖向外扩散</text>
+  </g>
+
+  <!-- 右侧图形区域：齿轮齿廓啮合原理 -->
+  <g id="gear-stage">
+    <!-- 两个咬合的齿轮简化齿形模型 (中心在 620 与 720) -->
+    <g transform="translate(670, 240)">
+      <!-- 咬合传动啮合线（基圆内公切线） -->
+      <line x1="-80" y1="40" x2="80" y2="-40" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="35" y="-45" font-size="9.5" fill="#d97706" font-weight="bold">啮合接触线 (力始终沿直线传递)</text>
+
+      <!-- 齿轮 A 轮廓 (左) -->
+      <path d="M -50 -50 C -40 -20, -10 -10, 0 0 C -10 10, -40 20, -50 50" fill="none" stroke="#334155" stroke-width="5" stroke-linecap="round"/>
+      <text x="-85" y="5" font-size="11" font-weight="bold" fill="#334155">齿轮 1 (主动)</text>
+
+      <!-- 齿轮 B 轮廓 (右) -->
+      <path d="M 50 -50 C 40 -20, 10 -10, 0 0 C 10 10, 40 20, 50 50" fill="none" stroke="#0284c7" stroke-width="5" stroke-linecap="round"/>
+      <text x="35" y="25" font-size="11" font-weight="bold" fill="#0284c7">齿轮 2 (从动)</text>
+
+      <!-- 啮合接触点 -->
+      <circle cx="0" cy="0" r="6" fill="#ef4444" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      <text x="-25" y="-12" font-size="10" font-weight="bold" fill="#ef4444">接触点纯滚动！</text>
+    </g>
+
+    <text x="670" y="325" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">⚙️ 渐开线与齿轮传动</text>
+    <text x="670" y="345" font-size="10" fill="#64748b" text-anchor="middle">牙齿接触时像两块平滑玻璃“纯滚动”，不磨损、不卡齿、声音超安静！</text>
+
+    <!-- 右侧状态看板 -->
+    <rect x="485" y="380" width="370" height="48" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="498" y="400" font-size="12" font-weight="bold" fill="#92400e">知识卡片：没有渐开线，就没有现代机械！</text>
+    <text x="498" y="418" font-size="10.5" fill="#b45309">渐开线常见于工业齿轮传动；不同场景也会采用其他齿形</text>
+  </g>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e3a8a">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      把绳子<tspan font-weight="bold">绷紧并从圆上展开</tspan>，绳端描出<tspan fill="#0284c7" font-weight="bold">圆的渐开线</tspan>。许多齿轮使用这种齿廓，以获得稳定的传动比。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 200, cy = 270, Rb = 42;
+      const maxTheta = 3.6; // 约 206度
+      const staticInvolute = document.getElementById('static-involute-path');
+
+      // 预先绘制静态参考渐开线:
+      // x = cx + Rb*(cos(t) + t*sin(t))
+      // y = cy - Rb*(sin(t) - t*cos(t))  [因为屏幕Y轴向下]
+      let staticD = 'M ' + (cx + Rb) + ' ' + cy;
+      for (let i = 0; i <= 80; i++) {
+        const t = (i / 80) * maxTheta;
+        const x = cx + Rb * (Math.cos(t) + t * Math.sin(t));
+        const y = cy - Rb * (Math.sin(t) - t * Math.cos(t));
+        staticD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      staticInvolute.setAttribute('d', staticD);
+
+      const dynInvolute = document.getElementById('dynamic-involute-path');
+      const tautString = document.getElementById('taut-string');
+      const detachPoint = document.getElementById('detach-point');
+      const stringTip = document.getElementById('string-tip');
+      const labelStatus = document.getElementById('label-involute-status');
+      const labelDesc = document.getElementById('label-involute-desc');
+
+      const cycleDuration = 6000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const phase = (elapsed % cycleDuration) / cycleDuration;
+        const u = Math.min(1.0, phase / 0.85); // 留出定格时间
+
+        const curT = u * maxTheta;
+        const curDeg = (curT * 180) / Math.PI;
+
+        // 剥离切点坐标 (在基圆上): (cx + Rb*cos(t), cy - Rb*sin(t))
+        const pX = cx + Rb * Math.cos(curT);
+        const pY = cy - Rb * Math.sin(curT);
+
+        // 绳端笔尖坐标:
+        const tipX = cx + Rb * (Math.cos(curT) + curT * Math.sin(curT));
+        const tipY = cy - Rb * (Math.sin(curT) - curT * Math.cos(curT));
+
+        // 更新绳子 (从切点到笔尖)
+        tautString.setAttribute('x1', pX);
+        tautString.setAttribute('y1', pY);
+        tautString.setAttribute('x2', tipX);
+        tautString.setAttribute('y2', tipY);
+
+        detachPoint.setAttribute('cx', pX);
+        detachPoint.setAttribute('cy', pY);
+
+        stringTip.setAttribute('cx', tipX);
+        stringTip.setAttribute('cy', tipY);
+
+        // 动态绘制已展开轨迹
+        let d = 'M ' + (cx + Rb) + ' ' + cy;
+        const steps = Math.floor(u * 80);
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / 80) * maxTheta;
+          const x = cx + Rb * (Math.cos(t) + t * Math.sin(t));
+          const y = cy - Rb * (Math.sin(t) - t * Math.cos(t));
+          d += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        d += ' L ' + tipX.toFixed(1) + ' ' + tipY.toFixed(1);
+        dynInvolute.setAttribute('d', d);
+
+        // 文案更新
+        labelStatus.textContent = '展开角度: ' + curDeg.toFixed(0) + '° | 剥离绳长: ' + (Rb * curT).toFixed(0) + ' px';
+        if (curDeg < 10) {
+          labelDesc.textContent = '🧶 绳子紧贴毛线球，准备向外剥开';
+        } else if (curDeg > 180) {
+          labelDesc.textContent = '📐 绳子越拉越长，轨迹向外大幅舒展伸展！';
+        } else {
+          labelDesc.textContent = '📏 绳子绷紧始终与圆垂直相切，绘制出完美齿廓';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

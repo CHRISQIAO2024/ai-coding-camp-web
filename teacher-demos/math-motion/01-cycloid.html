@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>摆线 Cycloid | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察自行车轮边缘的标记点如何随车轮滚动形成摆线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色：旋轮线使用活力赤金与火焰橙 -->
+    <linearGradient id="cycloid-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="chute-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🚲 自行车轮与神奇拱门 —— 旋轮线（摆线 Cycloid）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">车轮边缘标记点描出摆线；理想无摩擦、同起终点且从静止出发时，它是最速降线。</text>
+  </g>
+
+  <!-- 左侧卡片：轮子滚动与轨迹生成 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 车轮滚出金色拱门（几何生成）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">车轮向前滚动一整圈，小红灯刚好画完一个跨度 2πR 的拱门</text>
+
+  <!-- 右侧卡片：最速降线滑梯比赛 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#e11d48">2. 理想模型中的最速降线比较</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">同一起终点、从静止出发且忽略摩擦时，摆线轨道用时最短。</text>
+
+  <!-- 左侧图形区域：地面在 Y = 345, 轮子半径 R = 38 -->
+  <g id="rolling-stage">
+    <!-- 地面与路标 -->
+    <line x1="45" y1="345" x2="415" y2="345" stroke="#334155" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 地面砖纹 -->
+    <line x1="45" y1="348" x2="415" y2="348" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+    <!-- 拱门关键刻度标记 (起点 x=75, 拱顶 x=75+pi*38=194.4, 终点 x=75+2*pi*38=313.8) -->
+    <line x1="75" y1="345" x2="75" y2="352" stroke="#64748b" stroke-width="2"/>
+    <text x="70" y="365" font-size="10" fill="#64748b">起点(0)</text>
+
+    <line x1="194" y1="345" x2="194" y2="352" stroke="#64748b" stroke-width="2"/>
+    <text x="175" y="365" font-size="10" fill="#0284c7" font-weight="bold">半圈(πR)</text>
+
+    <line x1="314" y1="345" x2="314" y2="352" stroke="#64748b" stroke-width="2"/>
+    <text x="295" y="365" font-size="10" fill="#64748b">一圈(2πR)</text>
+
+    <!-- 最高拱顶高度基准虚线 (Y = 345 - 2*38 = 269) -->
+    <line x1="75" y1="269" x2="335" y2="269" stroke="#fed7aa" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="340" y="273" font-size="10" fill="#ea580c">最高顶(2R)</text>
+
+    <!-- 完整的静态参考旋轮线 (浅灰虚线) -->
+    <path id="static-cycloid-path" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 动态绘制的炫彩旋轮线轨迹 -->
+    <path id="dynamic-cycloid-path" d="" fill="none" stroke="url(#cycloid-grad)" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 滚动轮子组件 (中心由 script 控制平移) -->
+    <g id="rolling-wheel" transform="translate(75, 307)">
+      <!-- 轮圈 -->
+      <circle cx="0" cy="0" r="38" fill="none" stroke="#bae6fd" stroke-width="8"/>
+      <circle cx="0" cy="0" r="38" fill="none" stroke="#0284c7" stroke-width="2"/>
+      <!-- 车轴 -->
+      <circle cx="0" cy="0" r="5" fill="#0369a1"/>
+      <!-- 车轮辐条 (随自转旋转) -->
+      <g id="wheel-spokes">
+        <line x1="-38" y1="0" x2="38" y2="0" stroke="#0284c7" stroke-width="1.5"/>
+        <line x1="0" y1="-38" x2="0" y2="38" stroke="#0284c7" stroke-width="1.5"/>
+        <line x1="-27" y1="-27" x2="27" y2="27" stroke="#38bdf8" stroke-width="1.2"/>
+        <line x1="-27" y1="27" x2="27" y2="-27" stroke="#38bdf8" stroke-width="1.2"/>
+        <!-- 轮胎边缘的小红灯 (标记点 P) -->
+        <circle id="spoke-dot" cx="0" cy="38" r="7" fill="#ef4444" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      </g>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-cycloid-status" x="58" y="400" font-size="12" font-weight="bold" fill="#0284c7">车轮滚动进度: 0° (刚出发)</text>
+    <text id="label-cycloid-desc" x="58" y="418" font-size="10.5" fill="#0369a1">小红灯接触地面，即将向上翻腾腾空</text>
+  </g>
+
+  <!-- 右侧图形区域：最速降线滑梯比赛 (起点 500,170 到 终点 830,345) -->
+  <g id="race-stage">
+    <!-- 终点地面线 -->
+    <line x1="485" y1="345" x2="855" y2="345" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- 终点线格子旗帜 🏁 -->
+    <g transform="translate(830, 310)">
+      <line x1="0" y1="0" x2="0" y2="35" stroke="#0f172a" stroke-width="2.5"/>
+      <rect x="0" y="0" width="18" height="12" fill="#0f172a"/>
+      <rect x="0" y="0" width="9" height="6" fill="#ffffff"/>
+      <rect x="9" y="6" width="9" height="6" fill="#ffffff"/>
+      <text x="-4" y="-5" font-size="10" font-weight="bold" fill="#0f172a">终点</text>
+    </g>
+
+    <!-- 轨道 1：笔直斜面 (灰色虚线) -->
+    <line x1="500" y1="170" x2="830" y2="345" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="5,4"/>
+    <text x="590" y="240" font-size="10" fill="#94a3b8" transform="rotate(27.9, 590, 240)">笔直斜坡轨道</text>
+
+    <!-- 轨道 2：旋轮线最速降线滑梯 (鲜亮弧线) -->
+    <path id="chute-cycloid" d="" fill="none" stroke="url(#chute-grad)" stroke-width="4.5" stroke-linecap="round"/>
+    <text x="640" y="325" font-size="10.5" font-weight="bold" fill="#ef4444">🔥 旋轮线滑梯（最速降线）</text>
+
+    <!-- 比赛小滑块 A：走直线的小蓝球 -->
+    <g id="racer-line" transform="translate(500, 170)">
+      <circle cx="0" cy="0" r="8" fill="#3b82f6" stroke="#ffffff" stroke-width="1.5" filter="url(#soft-shadow)"/>
+      <text x="0" y="3" font-size="8" fill="#ffffff" text-anchor="middle" font-weight="bold">直</text>
+    </g>
+
+    <!-- 比赛小滑块 B：走旋轮线的小红球 -->
+    <g id="racer-cycloid" transform="translate(500, 170)">
+      <circle cx="0" cy="0" r="9" fill="#ef4444" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+      <text x="0" y="3" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="bold">旋</text>
+    </g>
+
+    <!-- 右侧胜负与知识看板 -->
+    <rect x="485" y="380" width="370" height="48" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+    <text id="label-race-status" x="498" y="400" font-size="12" font-weight="bold" fill="#dc2626">比赛状态: 准备起跑...</text>
+    <text id="label-race-desc" x="498" y="418" font-size="10.5" fill="#991b1b">旋轮线开头极其陡峭，让小球迅速获得极高初速！</text>
+  </g>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fef3c7" stroke="#fde68a"/>
+    <text x="15" y="10" font-size="12.5" fill="#92400e">
+      💡 <tspan font-weight="bold" fill="#b45309">一句话秒懂：</tspan>
+      车轮滚动，边缘标记点画出<tspan fill="#ef4444" font-weight="bold">摆线</tspan>。在理想无摩擦、同起终点的模型中，沿摆线下滑所需时间最短。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      // ----------------- 左侧：车轮滚动与旋轮线生成 -----------------
+      const startX = 75, groundY = 345, R = 38;
+      const centerY = groundY - R; // 307
+      const totalRollWidth = 2 * Math.PI * R; // 238.76 px (约239)
+      const rollDuration = 5000; // 5秒滚完一轮循环
+
+      // 预先绘制左侧静态参考旋轮线
+      const staticCycloid = document.getElementById('static-cycloid-path');
+      let staticD = 'M ' + startX + ' ' + groundY;
+      for (let deg = 0; deg <= 360; deg += 3) {
+        const theta = (deg * Math.PI) / 180;
+        const x = startX + R * (theta - Math.sin(theta));
+        const y = groundY - R * (1 - Math.cos(theta));
+        staticD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      staticCycloid.setAttribute('d', staticD);
+
+      const wheelGroup = document.getElementById('rolling-wheel');
+      const wheelSpokes = document.getElementById('wheel-spokes');
+      const dynamicCycloid = document.getElementById('dynamic-cycloid-path');
+      const labelRollStatus = document.getElementById('label-cycloid-status');
+      const labelRollDesc = document.getElementById('label-cycloid-desc');
+
+      // ----------------- 右侧：最速降线滑梯比拼 -----------------
+      const chuteX0 = 500, chuteY0 = 170;
+      const dx = 330, dy = 175;
+      const chuteCycloidPath = document.getElementById('chute-cycloid');
+      
+      // 预先计算最速降线旋轮线参数
+      // 经过 (0,0) 到 (330, 175)
+      const phi_end = 3.3794;
+      const A_scale = dy / (1 - Math.cos(phi_end)); // 约 88.7
+
+      let chuteD = 'M ' + chuteX0 + ' ' + chuteY0;
+      for (let i = 0; i <= 60; i++) {
+        const phi = (i / 60) * phi_end;
+        const x = chuteX0 + A_scale * (phi - Math.sin(phi));
+        const y = chuteY0 + A_scale * (1 - Math.cos(phi));
+        chuteD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      chuteCycloidPath.setAttribute('d', chuteD);
+
+      const racerLine = document.getElementById('racer-line');
+      const racerCyc = document.getElementById('racer-cycloid');
+      const labelRaceStatus = document.getElementById('label-race-status');
+      const labelRaceDesc = document.getElementById('label-race-desc');
+
+      // 比赛物理时间缩放
+      const raceCycle = 4000; // 4秒一个竞速循环
+      const tCycEnd = 1500;   // 旋轮线球 1.5秒到达
+      const tLineEnd = 1950;  // 直线球 1.95秒到达 (比旋轮线慢约30%)
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // ---------- 1. 更新左侧轮子滚动 ----------
+        const rollPhase = (elapsed % rollDuration) / rollDuration;
+        // 在 0~0.85 滚动，0.85~1.0 短暂展示定格
+        const rollT = Math.min(1.0, rollPhase / 0.85);
+        const currentTheta = rollT * 2 * Math.PI;
+        const currentDeg = rollT * 360;
+
+        const currentCenterX = startX + R * currentTheta;
+        wheelGroup.setAttribute('transform', 'translate(' + currentCenterX + ',' + centerY + ')');
+        wheelSpokes.setAttribute('transform', 'rotate(' + currentDeg + ')');
+
+        // 动态绘制已滚过的轨迹
+        let dynD = 'M ' + startX + ' ' + groundY;
+        const steps = Math.floor(currentDeg);
+        for (let deg = 0; deg <= steps; deg += 3) {
+          const th = (deg * Math.PI) / 180;
+          const x = startX + R * (th - Math.sin(th));
+          const y = groundY - R * (1 - Math.cos(th));
+          dynD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        const tipX = startX + R * (currentTheta - Math.sin(currentTheta));
+        const tipY = groundY - R * (1 - Math.cos(currentTheta));
+        dynD += ' L ' + tipX.toFixed(1) + ' ' + tipY.toFixed(1);
+        dynamicCycloid.setAttribute('d', dynD);
+
+        // 左侧文案
+        if (currentDeg < 15) {
+          labelRollStatus.textContent = '车轮滚动进度: 0° (起点触地)';
+          labelRollDesc.textContent = '小红灯接触地面，准备向上翻腾腾空';
+        } else if (Math.abs(currentDeg - 180) < 18) {
+          labelRollStatus.textContent = '车轮滚动进度: 180° (达到拱顶!)';
+          labelRollDesc.textContent = '高度达到 2R（两倍车轮高），速度最快向右冲';
+        } else if (currentDeg > 345) {
+          labelRollStatus.textContent = '车轮滚动进度: 360° (一整圈落地!)';
+          labelRollDesc.textContent = '跨越整整 2πR（一圈周长），完整拱门生成完毕';
+        } else {
+          labelRollStatus.textContent = '车轮旋转: ' + currentDeg.toFixed(0) + '° | 距离: ' + (currentCenterX - startX).toFixed(0) + 'px';
+          labelRollDesc.textContent = currentDeg < 180 ? '↗️ 小红灯腾空向上飞跃' : '↘️ 小红灯从最高峰俯冲回归地面';
+        }
+
+        // ---------- 2. 更新右侧滑梯比拼 ----------
+        const raceTime = elapsed % raceCycle;
+
+        // 旋轮线小球 (线性时间对应 phi)
+        let cycX, cycY;
+        if (raceTime <= tCycEnd) {
+          const u = raceTime / tCycEnd;
+          const phi = u * phi_end;
+          cycX = chuteX0 + A_scale * (phi - Math.sin(phi));
+          cycY = chuteY0 + A_scale * (1 - Math.cos(phi));
+        } else {
+          // 到达终点停留
+          cycX = chuteX0 + dx;
+          cycY = chuteY0 + dy;
+        }
+        racerCyc.setAttribute('transform', 'translate(' + cycX + ',' + cycY + ')');
+
+        // 直线小球 (s ∝ t^2)
+        let lineX, lineY;
+        if (raceTime <= tLineEnd) {
+          const u = raceTime / tLineEnd;
+          const s = u * u; // 匀加速距离占比
+          lineX = chuteX0 + s * dx;
+          lineY = chuteY0 + s * dy;
+        } else {
+          lineX = chuteX0 + dx;
+          lineY = chuteY0 + dy;
+        }
+        racerLine.setAttribute('transform', 'translate(' + lineX + ',' + lineY + ')');
+
+        // 胜负状态提示
+        if (raceTime < 300) {
+          labelRaceStatus.textContent = '🏁 各就各位... 3, 2, 1, 冲！';
+          labelRaceDesc.textContent = '红球走旋轮线拱门，蓝球走笔直斜坡';
+        } else if (raceTime <= tCycEnd) {
+          labelRaceStatus.textContent = '⚡ 旋轮线猛烈俯冲，爆发式加速中！';
+          labelRaceDesc.textContent = '旋轮线前期极陡，虽然绕远，但迅速积累了超高速度';
+        } else if (raceTime <= tLineEnd) {
+          labelRaceStatus.textContent = '🏆 旋轮线小红球【率先冲过终点】！';
+          labelRaceDesc.textContent = '走直线的蓝球还在慢慢加速，已经落后了！';
+        } else {
+          labelRaceStatus.textContent = '🎉 旋轮线小红球大获全胜！(耗时短约 25%)';
+          labelRaceDesc.textContent = '这就是大名鼎鼎的“最速降线”原理！准备下一轮比拼...';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

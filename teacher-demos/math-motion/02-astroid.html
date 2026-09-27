@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>星形线 Astroid | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察内摆线与滑动梯子的包络如何形成四尖星形线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="astroid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <linearGradient id="ladder-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">✨ 滚出四角星与滑落的梯子 —— 星形线（Astroid）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">半径比为 4:1 的内摆线会形成四尖星形线；固定长度梯子的运动包络也可形成它。</text>
+  </g>
+
+  <!-- 左侧卡片：大圆内滚小圆 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#4f46e5">1. 大圆肚子里滚小轮（内摆线 k=4）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">大圆半径是小圆的4倍，小圆滚一圈画出4个尖尖角</text>
+
+  <!-- 右侧卡片：靠墙滑落的梯子 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#0284c7">2. 靠墙滑动的梯子（运动包络）</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">连续多个梯子位置的包络线，呈现四尖星形线。</text>
+
+  <!-- 左侧图形区域：大圆中心 (230, 270), 大圆 R = 90, 小圆 r = 22.5 -->
+  <g id="astroid-roll-stage">
+    <!-- 坐标轴 -->
+    <line x1="120" y1="270" x2="340" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="230" y1="160" x2="230" y2="380" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- 固定大圆 (R = 90) -->
+    <circle cx="230" cy="270" r="90" fill="none" stroke="#e0e7ff" stroke-width="8"/>
+    <circle cx="230" cy="270" r="90" fill="none" stroke="#6366f1" stroke-width="2"/>
+    <circle cx="230" cy="270" r="4" fill="#4338ca"/>
+
+    <!-- 静态参考星形线 (浅灰虚线) -->
+    <path id="static-astroid-path" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 动态绘制的星形线轨迹 -->
+    <path id="dynamic-astroid-path" d="" fill="none" stroke="url(#astroid-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 滚动小圆组件 (中心移动，小圆自转) -->
+    <g id="astroid-small-wheel">
+      <circle cx="0" cy="0" r="22.5" fill="none" stroke="#bae6fd" stroke-width="4"/>
+      <circle cx="0" cy="0" r="22.5" fill="none" stroke="#0284c7" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="3" fill="#0284c7"/>
+      <line id="astroid-spoke" x1="0" y1="0" x2="22.5" y2="0" stroke="#0284c7" stroke-width="1.5"/>
+      <!-- 小圆边缘标记小星点 -->
+      <circle id="astroid-tracer-dot" cx="22.5" cy="0" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" filter="url(#soft-shadow)"/>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text id="label-astroid-status" x="58" y="400" font-size="12" font-weight="bold" fill="#4338ca">滚动进度: 0° (尖角起点)</text>
+    <text id="label-astroid-desc" x="58" y="418" font-size="10.5" fill="#4f46e5">大圆 R=4r，小圆转 4 圈正好闭合画出一颗四角星</text>
+  </g>
+
+  <!-- 右侧图形区域：梯子滑落包络线 (墙角在 520, 360, 梯子长 L = 140) -->
+  <g id="ladder-stage">
+    <!-- 垂直墙壁与水平地面 -->
+    <line x1="520" y1="170" x2="520" y2="360" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+    <line x1="520" y1="360" x2="840" y2="360" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+    <text x="500" y="185" font-size="10" fill="#64748b">墙壁</text>
+    <text x="815" y="375" font-size="10" fill="#64748b">地面</text>
+
+    <!-- 背景已保留的梯子残影集合 (展示包络效果) -->
+    <g id="ladder-trails" opacity="0.4"></g>
+
+    <!-- 动态滑落的梯子棒 -->
+    <line id="active-ladder" x1="520" y1="220" x2="660" y2="360" stroke="url(#ladder-grad)" stroke-width="4" stroke-linecap="round"/>
+    <circle id="ladder-top" cx="520" cy="220" r="5" fill="#d97706"/>
+    <circle id="ladder-bottom" cx="660" cy="360" r="5" fill="#d97706"/>
+
+    <!-- 梯子切出的星形线弧 (第一象限弧) -->
+    <path id="ladder-envelope-arc" d="" fill="none" stroke="#6366f1" stroke-width="3" stroke-dasharray="4,3"/>
+
+    <!-- 右侧状态看板 -->
+    <rect x="485" y="380" width="370" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-ladder-status" x="498" y="400" font-size="12" font-weight="bold" fill="#0369a1">梯子滑动角度: 45° (居中滑落)</text>
+    <text id="label-ladder-desc" x="498" y="418" font-size="10.5" fill="#0284c7">不管梯子怎么滑，它的身躯永远切在星形线的弧线上！</text>
+  </g>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#c7d2fe"/>
+    <text x="15" y="10" font-size="12.5" fill="#312e81">
+      💡 <tspan font-weight="bold" fill="#4f46e5">一句话秒懂：</tspan>
+      大轮肚里滚小轮，<tspan font-weight="bold">四倍半径画四星</tspan>！在理想化的靠墙梯子模型中，梯子连续滑动的位置包络可呈现<tspan fill="#4f46e5" font-weight="bold">星形线</tspan>。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const R = 90, r = 22.5; // R = 4r
+      const cx = 230, cy = 270;
+      const staticAstroid = document.getElementById('static-astroid-path');
+      
+      // 预先绘制静态星形线: x = R*cos^3(t), y = R*sin^3(t)
+      let staticD = 'M ' + (cx + R) + ' ' + cy;
+      for (let deg = 0; deg <= 360; deg += 2) {
+        const t = (deg * Math.PI) / 180;
+        const x = cx + R * Math.pow(Math.cos(t), 3);
+        const y = cy - R * Math.pow(Math.sin(t), 3);
+        staticD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      staticAstroid.setAttribute('d', staticD);
+
+      const smallWheel = document.getElementById('astroid-small-wheel');
+      const spoke = document.getElementById('astroid-spoke');
+      const tracer = document.getElementById('astroid-tracer-dot');
+      const dynAstroid = document.getElementById('dynamic-astroid-path');
+      const labelRollStatus = document.getElementById('label-astroid-status');
+      const labelRollDesc = document.getElementById('label-astroid-desc');
+
+      // 右侧梯子参数 (墙角 520, 360, 梯长 L = 140)
+      const cornerX = 520, cornerY = 360, L = 140;
+      const activeLadder = document.getElementById('active-ladder');
+      const ladderTop = document.getElementById('ladder-top');
+      const ladderBottom = document.getElementById('ladder-bottom');
+      const ladderTrails = document.getElementById('ladder-trails');
+      const ladderEnvelope = document.getElementById('ladder-envelope-arc');
+      const labelLadderStatus = document.getElementById('label-ladder-status');
+      const labelLadderDesc = document.getElementById('label-ladder-desc');
+
+      // 预先生成静态右侧包络弧线: x = L*cos^3(t), y = L*sin^3(t)
+      let envD = 'M ' + (cornerX + L) + ' ' + cornerY;
+      for (let deg = 0; deg <= 90; deg += 2) {
+        const t = (deg * Math.PI) / 180;
+        const x = cornerX + L * Math.pow(Math.cos(t), 3);
+        const y = cornerY - L * Math.pow(Math.sin(t), 3);
+        envD += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      ladderEnvelope.setAttribute('d', envD);
+
+      // 生成几根固定的半透明参考梯子
+      for (let ang of [15, 30, 45, 60, 75]) {
+        const rad = (ang * Math.PI) / 180;
+        const topY = cornerY - L * Math.sin(rad);
+        const botX = cornerX + L * Math.cos(rad);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', cornerX);
+        line.setAttribute('y1', topY);
+        line.setAttribute('x2', botX);
+        line.setAttribute('y2', cornerY);
+        line.setAttribute('stroke', '#cbd5e1');
+        line.setAttribute('stroke-width', '1.5');
+        ladderTrails.appendChild(line);
+      }
+
+      const cycleDuration = 8000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+        const theta = progress * 2 * Math.PI;
+        const deg = progress * 360;
+
+        // ---------- 1. 更新左侧小圆滚动 ----------
+        // 小圆圆心坐标: ((R-r)*cos(theta), (R-r)*sin(theta))
+        const smallCenterX = cx + (R - r) * Math.cos(theta);
+        const smallCenterY = cy - (R - r) * Math.sin(theta);
+        smallWheel.setAttribute('transform', 'translate(' + smallCenterX + ',' + smallCenterY + ')');
+
+        // 小圆在自转：角度为 -((R-r)/r)*theta = -3*theta
+        const spinAngle = -3 * deg;
+        const tipLocalX = r * Math.cos((spinAngle * Math.PI) / 180);
+        const tipLocalY = -r * Math.sin((spinAngle * Math.PI) / 180);
+        spoke.setAttribute('x2', tipLocalX);
+        spoke.setAttribute('y2', tipLocalY);
+        tracer.setAttribute('cx', tipLocalX);
+        tracer.setAttribute('cy', tipLocalY);
+
+        // 动态绘制已走过的星形线轨迹
+        let d = 'M ' + (cx + R) + ' ' + cy;
+        const steps = Math.floor(deg);
+        for (let i = 0; i <= steps; i += 2) {
+          const t = (i * Math.PI) / 180;
+          const x = cx + R * Math.pow(Math.cos(t), 3);
+          const y = cy - R * Math.pow(Math.sin(t), 3);
+          d += ' L ' + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        const curX = cx + R * Math.pow(Math.cos(theta), 3);
+        const curY = cy - R * Math.pow(Math.sin(theta), 3);
+        d += ' L ' + curX.toFixed(1) + ' ' + curY.toFixed(1);
+        dynAstroid.setAttribute('d', d);
+
+        // 左侧文案
+        const cornerIdx = Math.floor((deg + 45) / 90) % 4 + 1;
+        labelRollStatus.textContent = '小圆旋转: ' + deg.toFixed(0) + '° (正绘制第 ' + cornerIdx + ' 个星角)';
+        if (deg < 10 || Math.abs(deg - 360) < 10) {
+          labelRollDesc.textContent = '🌟 到达最右侧星芒顶点 (尖锐回折)';
+        } else if (Math.abs(deg - 90) < 10) {
+          labelRollDesc.textContent = '🌟 到达正上方星芒顶点！';
+        } else if (Math.abs(deg - 180) < 10) {
+          labelRollDesc.textContent = '🌟 到达最左侧星芒顶点！';
+        } else if (Math.abs(deg - 270) < 10) {
+          labelRollDesc.textContent = '🌟 到达正下方星芒顶点！';
+        } else {
+          labelRollDesc.textContent = '💫 小圆无滑动滚转，弧线自然内弯形成星角';
+        }
+
+        // ---------- 2. 更新右侧梯子滑落 ----------
+        // 让梯子在 5° 到 85° 之间往复平滑滑动
+        const pingPong = Math.sin(progress * 2 * Math.PI); // -1 到 1
+        const ladderAngleDeg = 45 + 40 * pingPong; // 5° 到 85°
+        const ladderRad = (ladderAngleDeg * Math.PI) / 180;
+
+        const curTopY = cornerY - L * Math.sin(ladderRad);
+        const curBotX = cornerX + L * Math.cos(ladderRad);
+
+        activeLadder.setAttribute('x1', cornerX);
+        activeLadder.setAttribute('y1', curTopY);
+        activeLadder.setAttribute('x2', curBotX);
+        activeLadder.setAttribute('y2', cornerY);
+
+        ladderTop.setAttribute('cy', curTopY);
+        ladderBottom.setAttribute('cx', curBotX);
+
+        labelLadderStatus.textContent = '梯子倾斜角: ' + ladderAngleDeg.toFixed(1) + '°';
+        if (Math.abs(ladderAngleDeg - 45) < 5) {
+          labelLadderDesc.textContent = '📐 45° 居中，梯子中点扫在星形线最深处';
+        } else if (ladderAngleDeg > 75) {
+          labelLadderDesc.textContent = '⬆️ 梯子快要立直，紧贴墙壁';
+        } else {
+          labelLadderDesc.textContent = '➡️ 梯子快要倒平，紧贴地面';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

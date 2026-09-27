@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>李萨如图形 | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察两个互相垂直的简谐振动如何合成不同的李萨如图形。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="lissa-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎨 两个秋千的交响乐 —— 利萨如图形（Lissajous）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">两个互相垂直的周期振动叠加，轨迹由振动频率比和初始相位共同决定。</text>
+  </g>
+
+  <!-- 左侧卡片：双向振动激光交叉 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#7c3aed">1. 左右荡 + 上下荡（交叉生成）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">上方滑块控水平 X，左侧滑块控竖直 Y，激光交叉点画图</text>
+
+  <!-- 右侧卡片：频率比率大变身 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#0284c7">2. 音乐和弦与频率花纹（比率奇迹）</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">改变频率比与相位，可得到不同图形；示波器常用它观察两个周期信号的关系。</text>
+
+  <!-- 左侧图形区域：交叉中心 (250, 270), 振幅 A=70, B=65 -->
+  <g id="lissa-stage">
+    <!-- 绘图舞台框 -->
+    <rect x="175" y="200" width="150" height="140" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+    
+    <!-- 顶部水平振荡滑块 (控制 X: fx=1) -->
+    <line x1="175" y1="170" x2="325" y2="170" stroke="#cbd5e1" stroke-width="2"/>
+    <circle id="slider-x" cx="250" cy="170" r="8" fill="#06b6d4" filter="url(#soft-shadow)"/>
+    <text x="135" y="174" font-size="10" fill="#0891b2" font-weight="bold">左右秋千 (X)</text>
+
+    <!-- 左侧竖直振荡滑块 (控制 Y: fy=2) -->
+    <line x1="145" y1="200" x2="145" y2="340" stroke="#cbd5e1" stroke-width="2"/>
+    <circle id="slider-y" cx="145" cy="270" r="8" fill="#ec4899" filter="url(#soft-shadow)"/>
+    <text x="90" y="274" font-size="10" fill="#be185d" font-weight="bold">上下秋千 (Y)</text>
+
+    <!-- 垂直与水平激光光束 -->
+    <line id="laser-vert" x1="250" y1="170" x2="250" y2="340" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <line id="laser-horiz" x1="145" y1="270" x2="325" y2="270" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+    <!-- 静态参考轨迹 (无限双环 8 字) -->
+    <path id="static-lissa-path" d="" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="3,3"/>
+
+    <!-- 动态绘制的利萨如图形 -->
+    <path id="dynamic-lissa-path" d="" fill="none" stroke="url(#lissa-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 激光交叉合成点 -->
+    <circle id="lissa-cross-dot" cx="250" cy="270" r="7" fill="#8b5cf6" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+    <text id="label-lissa-status" x="58" y="400" font-size="12" font-weight="bold" fill="#6b21a8">频率比率: 1 : 2 (左右摇1次，上下荡2次)</text>
+    <text id="label-lissa-desc" x="58" y="418" font-size="10.5" fill="#7c3aed">频率比与相位共同决定轨迹；下方展示几种典型图形。</text>
+  </g>
+
+  <!-- 右侧图形区域：不同频率的神秘图案画廊 -->
+  <g id="gallery-stage" transform="translate(490, 160)">
+    <!-- 1:1 椭圆 / 圆 -->
+    <g transform="translate(45, 45)">
+      <rect x="-40" y="-35" width="80" height="70" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <ellipse cx="0" cy="0" rx="28" ry="22" fill="none" stroke="#0284c7" stroke-width="2.5" transform="rotate(-30)"/>
+      <text x="0" y="48" font-size="10" fill="#0284c7" font-weight="bold" text-anchor="middle">1 : 1 (圆/椭圆)</text>
+    </g>
+
+    <!-- 1:2 无限符号 ∞ -->
+    <g transform="translate(155, 45)">
+      <rect x="-40" y="-35" width="80" height="70" rx="8" fill="#fdf4ff" stroke="#f0abfc"/>
+      <path d="M -26 -16 C -10 16, 10 16, 26 -16 C 36 -4, 36 4, 26 16 C 10 -16, -10 -16, -26 16 C -36 4, -36 -4, -26 -16 Z" fill="none" stroke="#d946ef" stroke-width="2.5"/>
+      <text x="0" y="48" font-size="10" fill="#c026d3" font-weight="bold" text-anchor="middle">1 : 2 (无限 ∞)</text>
+    </g>
+
+    <!-- 2:3 三叶结 -->
+    <g transform="translate(265, 45)">
+      <rect x="-40" y="-35" width="80" height="70" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+      <path id="gallery-2-3" d="" fill="none" stroke="#8b5cf6" stroke-width="2.5"/>
+      <text x="0" y="48" font-size="10" fill="#7c3aed" font-weight="bold" text-anchor="middle">2 : 3 (中国结)</text>
+    </g>
+
+    <text x="175" y="165" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">📻 物理与音乐的秘密钥匙</text>
+    <text x="175" y="185" font-size="10" fill="#64748b" text-anchor="middle">示波器可用李萨如图形比较两个互相垂直输入的周期信号。</text>
+  </g>
+
+  <!-- 右侧状态看板 -->
+  <rect x="485" y="380" width="370" height="48" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="498" y="400" font-size="12" font-weight="bold" fill="#1e40af">知识卡片：为什么示波器能看声音？</text>
+  <text x="498" y="418" font-size="10.5" fill="#2563eb">把两个声波信号分别输入 X 和 Y 轴，屏幕立即显示对应的几何指纹</text>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+    <text x="15" y="10" font-size="12.5" fill="#581c87">
+      💡 <tspan font-weight="bold" fill="#7c3aed">一句话秒懂：</tspan>
+      两个方向的<tspan font-weight="bold">周期振动叠加</tspan>，频率比与初始相位一起决定轨迹形状，这类曲线称为<tspan fill="#7c3aed" font-weight="bold">李萨如图形</tspan>。图中的“∞”与“中国结”是形状比喻。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 250, cy = 270;
+      const A = 68, B = 60;
+      const fx = 1, fy = 2; // 1:2 频率比
+      const phaseDelta = Math.PI / 2; // 形成经典闭合环
+
+      // 预先绘制左侧静态参考 1:2 闭合曲线
+      const staticLissa = document.getElementById('static-lissa-path');
+      let staticD = '';
+      for (let i = 0; i <= 100; i++) {
+        const t = (i / 100) * 2 * Math.PI;
+        const x = cx + A * Math.sin(fx * t);
+        const y = cy - B * Math.sin(fy * t);
+        staticD += (i === 0 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      staticD += ' Z';
+      staticLissa.setAttribute('d', staticD);
+
+      // 绘制右侧画廊中的 2:3 静态图案
+      const gallery23 = document.getElementById('gallery-2-3');
+      let g23D = '';
+      for (let i = 0; i <= 120; i++) {
+        const t = (i / 120) * 2 * Math.PI;
+        const x = 28 * Math.sin(2 * t);
+        const y = -22 * Math.sin(3 * t);
+        g23D += (i === 0 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      g23D += ' Z';
+      gallery23.setAttribute('d', g23D);
+
+      const dynLissa = document.getElementById('dynamic-lissa-path');
+      const sliderX = document.getElementById('slider-x');
+      const sliderY = document.getElementById('slider-y');
+      const laserVert = document.getElementById('laser-vert');
+      const laserHoriz = document.getElementById('laser-horiz');
+      const crossDot = document.getElementById('lissa-cross-dot');
+
+      const cycleDuration = 6000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const t = ((elapsed % cycleDuration) / cycleDuration) * 2 * Math.PI;
+
+        const curX = cx + A * Math.sin(fx * t);
+        const curY = cy - B * Math.sin(fy * t);
+
+        // 更新顶部 X 滑块与垂直激光
+        sliderX.setAttribute('cx', curX);
+        laserVert.setAttribute('x1', curX);
+        laserVert.setAttribute('x2', curX);
+
+        // 更新左侧 Y 滑块与水平激光
+        sliderY.setAttribute('cy', curY);
+        laserHoriz.setAttribute('y1', curY);
+        laserHoriz.setAttribute('y2', curY);
+
+        // 更新交叉合成点
+        crossDot.setAttribute('cx', curX);
+        crossDot.setAttribute('cy', curY);
+
+        // 动态绘制已走过的利萨如轨迹
+        let d = '';
+        const progressFrac = (elapsed % cycleDuration) / cycleDuration;
+        const steps = Math.floor(progressFrac * 100);
+        for (let i = 0; i <= steps; i++) {
+          const ptT = (i / 100) * 2 * Math.PI;
+          const x = cx + A * Math.sin(fx * ptT);
+          const y = cy - B * Math.sin(fy * ptT);
+          d += (i === 0 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+        }
+        d += (steps === 0 ? 'M ' : ' L ') + curX.toFixed(1) + ' ' + curY.toFixed(1);
+        dynLissa.setAttribute('d', d);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

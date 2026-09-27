@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>悬链线 Catenary | 机械运动与轨迹追踪</title>
+  <meta name="description" content="观察两端固定的柔性链条在自身重力作用下形成的悬链线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="chain-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="arch-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">⛓️ 自然下垂的项链与倒扣神桥 —— 悬链线（Catenary）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">均匀柔性链条在重力下自然下垂形成悬链线；倒置后可作理想受压拱形的示意。</text>
+  </g>
+
+  <!-- 左侧卡片：自然下垂的绳索项链 -->
+  <rect x="25" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#d97706">1. 珍珠项链自然下垂（拉力自平衡）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">理想柔性链条在自身重力作用下主要承受拉力。</text>
+
+  <!-- 右侧卡片：倒扣悬链线拱门 -->
+  <rect x="465" y="85" width="410" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="485" y="118" font-size="15" font-weight="bold" fill="#0369a1">2. 倒扣过来：建筑奇迹圣路易斯拱门</text>
+  <text x="485" y="136" font-size="11.5" fill="#64748b">倒置悬链可示意受压拱形；真实建筑的受力与设计更复杂。</text>
+
+  <!-- 左侧图形区域：悬挂点 (100, 180) 与 (360, 180) -->
+  <g id="chain-stage">
+    <!-- 固定悬挂支架柱 -->
+    <line x1="100" y1="140" x2="100" y2="350" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="360" y1="140" x2="360" y2="350" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="100" cy="180" r="7" fill="#0f172a"/>
+    <circle cx="360" cy="180" r="7" fill="#0f172a"/>
+    <text x="80" y="170" font-size="10" fill="#64748b">挂点 A</text>
+    <text x="365" y="170" font-size="10" fill="#64748b">挂点 B</text>
+
+    <!-- 动态呼吸下垂的悬链线缆绳 -->
+    <path id="hanging-chain" d="" fill="none" stroke="url(#chain-grad)" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 链条上的一串珍珠节点动画 -->
+    <g id="pearls-container"></g>
+
+    <!-- 最低点受力分析箭头（最低点切线完全水平） -->
+    <g id="lowest-point-tag">
+      <circle id="lowest-dot" cx="230" cy="300" r="5" fill="#dc2626"/>
+      <line id="force-tangent" x1="200" y1="300" x2="260" y2="300" stroke="#dc2626" stroke-width="2" stroke-dasharray="3,2"/>
+      <text id="lowest-text" x="230" y="325" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="middle">最低点拉力纯水平！</text>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="370" height="48" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+    <text id="label-chain-status" x="58" y="400" font-size="12" font-weight="bold" fill="#b45309">数学公式: y = a · cosh(x / a)</text>
+    <text id="label-chain-desc" x="58" y="418" font-size="10.5" fill="#d97706">看似抛物线，其实是双曲余弦函数（两边向上指数级翘起）</text>
+  </g>
+
+  <!-- 右侧图形区域：倒扣悬链线拱门 (中心 670, 地面 345, 跨度 260) -->
+  <g id="arch-stage">
+    <!-- 地面基座 -->
+    <line x1="510" y1="345" x2="830" y2="345" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+    <rect x="530" y="345" width="25" height="10" fill="#64748b"/>
+    <rect x="785" y="345" width="25" height="10" fill="#64748b"/>
+
+    <!-- 倒扣的宏伟拱门 (圣路易斯大拱门外形) -->
+    <path id="inverted-arch" d="" fill="none" stroke="url(#arch-grad)" stroke-width="8" stroke-linecap="round"/>
+    <!-- 拱心石高亮 -->
+    <circle cx="670" cy="175" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="2"/>
+    <text x="670" y="160" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">👑 拱顶：纯受挤压！</text>
+
+    <!-- 石块纯受压力示意标注箭头 -->
+    <g transform="translate(670, 240)">
+    <text x="0" y="0" font-size="11" font-weight="bold" fill="#0369a1" text-anchor="middle">🏛️ 倒置悬链与拱形</text>
+      <text x="0" y="20" font-size="10" fill="#475569" text-anchor="middle">重力完美转化为石块之间的【面对面挤压力】</text>
+      <text x="0" y="36" font-size="10" fill="#475569" text-anchor="middle">哪怕不用一滴水泥胶水，也能像赵州桥一样坚如磐石！</text>
+    </g>
+
+    <!-- 右侧状态看板 -->
+    <rect x="485" y="380" width="370" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text x="498" y="400" font-size="12" font-weight="bold" fill="#0369a1">建筑奇迹：高迪与圣家堂大教堂</text>
+    <text x="498" y="418" font-size="10.5" fill="#0284c7">悬链线是拱结构的一种理想模型；实际建筑还需考虑材料、荷载与支撑。</text>
+  </g>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fef3c7" stroke="#fde68a"/>
+    <text x="15" y="10" font-size="12.5" fill="#78350f">
+      💡 <tspan font-weight="bold" fill="#b45309">一句话秒懂：</tspan>
+      理想柔性链条下垂形成<tspan fill="#b45309" font-weight="bold">悬链线</tspan>。将曲线倒置可作为受压拱的理想示意；实际结构的稳定还取决于材料、荷载和支撑。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      // ----------------- 左侧：动态悬链线 -----------------
+      const x0 = 100, x1 = 360, midX = 230, hangY = 180;
+      const chainPath = document.getElementById('hanging-chain');
+      const lowestDot = document.getElementById('lowest-dot');
+      const forceTangent = document.getElementById('force-tangent');
+      const lowestText = document.getElementById('lowest-text');
+      const pearlsContainer = document.getElementById('pearls-container');
+
+      // 创建珍珠节点
+      const numPearls = 13;
+      const pearls = [];
+      for (let i = 0; i < numPearls; i++) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('r', '3.5');
+        c.setAttribute('fill', '#ffffff');
+        c.setAttribute('stroke', '#d97706');
+        c.setAttribute('stroke-width', '1.5');
+        pearlsContainer.appendChild(c);
+        pearls.push(c);
+      }
+
+      // ----------------- 右侧：固定圣路易斯大拱门 -----------------
+      const archPath = document.getElementById('inverted-arch');
+      const arcMidX = 670, groundY = 345, topY = 175;
+      const archSpanHalf = 120;
+      // 拟合拱门参数 a_arch
+      const a_arch = 100;
+      let archD = '';
+      for (let i = -archSpanHalf; i <= archSpanHalf; i += 3) {
+        // y = topY + a_arch * (cosh(x / a_arch) - 1)
+        const y = topY + a_arch * (Math.cosh(i / a_arch) - 1);
+        const x = arcMidX + i;
+        archD += (i === -archSpanHalf ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      archPath.setAttribute('d', archD);
+
+      const cycleDuration = 5000;
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        
+        // 让悬链线下垂深度轻微柔和呼吸振荡 (a 从 95 到 140 变化)
+        const breath = Math.sin((elapsed / cycleDuration) * 2 * Math.PI);
+        const a_val = 115 + 25 * breath; // 控制悬垂松弛度
+
+        // 计算悬链线: y = (hangY + a_val * cosh((x1-midX)/a_val)) - a_val * cosh((x-midX)/a_val)
+        const halfSpan = x1 - midX; // 130
+        const topCosh = a_val * Math.cosh(halfSpan / a_val);
+
+        let d = '';
+        const pts = [];
+        for (let x = x0; x <= x1; x += 4) {
+          const deltaX = x - midX;
+          const y = hangY + topCosh - a_val * Math.cosh(deltaX / a_val);
+          d += (x === x0 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+          pts.push({ x: x, y: y });
+        }
+        chainPath.setAttribute('d', d);
+
+        // 最低点
+        const lowY = hangY + topCosh - a_val;
+        lowestDot.setAttribute('cy', lowY);
+        forceTangent.setAttribute('y1', lowY);
+        forceTangent.setAttribute('y2', lowY);
+        lowestText.setAttribute('y', lowY + 20);
+
+        // 更新珍珠位置
+        for (let i = 0; i < numPearls; i++) {
+          const frac = (i + 1) / (numPearls + 1);
+          const px = x0 + frac * (x1 - x0);
+          const py = hangY + topCosh - a_val * Math.cosh((px - midX) / a_val);
+          pearls[i].setAttribute('cx', px.toFixed(1));
+          pearls[i].setAttribute('cy', py.toFixed(1));
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#motion">返回运动轨迹系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>
