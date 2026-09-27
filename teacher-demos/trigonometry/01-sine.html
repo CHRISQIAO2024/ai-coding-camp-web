@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>正弦 sin | 三角函数互动演示</title>
+  <meta name="description" content="用摩天轮的上下位置观察正弦函数，并看旋转如何形成波浪曲线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色 -->
+    <linearGradient id="wave-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="50%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+    <linearGradient id="bar-sin" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与波浪线 —— 三角函数（正弦 sin）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">摩天轮转动时，红色高度条忽长忽短；往右拉开时间轴，就留下了一条美丽的波浪线！</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与直角三角形 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 摩天轮在转圈（隐藏的直角三角形）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">蓝色吊臂转动，红色立柱始终测量“当前高度”</text>
+
+  <!-- 右侧卡片：正弦波生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#7c3aed">2. 展开时间轴（正弦波波浪线 y = sin θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">横轴表示转过的角度与时间，纵向高度和小红车完全同步！</text>
+
+  <!-- 左侧图形区域：圆心 (190, 270), 半径 R = 85 -->
+  <g id="ferris-wheel">
+    <!-- 地基与支架 -->
+    <line x1="190" y1="270" x2="145" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="190" y1="270" x2="235" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="125" y1="405" x2="255" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 摩天轮圆轨道 -->
+    <circle cx="190" cy="270" r="85" fill="none" stroke="#f1f5f9" stroke-width="12"/>
+    <circle cx="190" cy="270" r="85" fill="none" stroke="#bae6fd" stroke-width="2"/>
+    <!-- 水平平衡中心线 (Y = 0) -->
+    <line x1="60" y1="270" x2="320" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="50" y="265" font-size="10" fill="#94a3b8">平齐中心(0)</text>
+
+    <!-- 隐藏直角三角形：水平投影线（余弦 cos，蓝灰色） -->
+    <line id="triangle-cos" x1="190" y1="270" x2="275" y2="270" stroke="#0284c7" stroke-width="3" stroke-linecap="round"/>
+    <!-- 隐藏直角三角形：竖直高度条（正弦 sin，鲜红色） -->
+    <line id="triangle-sin" x1="275" y1="270" x2="275" y2="270" stroke="url(#bar-sin)" stroke-width="5" stroke-linecap="round"/>
+    <!-- 直角三角形直角标记 -->
+    <path id="right-angle-mark" d="" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+
+    <!-- 摩天轮吊臂（斜边，固定长 1） -->
+    <line id="ferris-arm" x1="190" y1="270" x2="275" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="190" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮座舱小红车 -->
+    <g id="ferris-cart" transform="translate(275, 270)">
+      <circle cx="0" cy="0" r="13" fill="#ff4d4f" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="6" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2.5" fill="#ff4d4f"/>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="135" height="48" rx="8" fill="#fff1f2" stroke="#fecdd3"/>
+    <text id="label-sin" x="55" y="400" font-size="12" font-weight="bold" fill="#e11d48">高度 sin: +0.00</text>
+    <text id="label-desc" x="55" y="418" font-size="10.5" fill="#e11d48">摩天轮正穿过地平线</text>
+  </g>
+
+  <!-- 右侧坐标系与波浪线 (起始 X=430, 宽=400, 中心 Y=270, 振幅=85) -->
+  <g id="wave-system">
+    <!-- 坐标轴 -->
+    <line x1="410" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="430" y1="145" x2="430" y2="395" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="430,140 426,150 434,150" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">时间 / 旋转圈数</text>
+    <text x="435" y="152" font-size="11" fill="#64748b">高度</text>
+
+    <!-- 峰值与谷值基准虚线 -->
+    <line x1="425" y1="185" x2="850" y2="185" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="390" y="189" font-size="10" fill="#94a3b8">最高(+1)</text>
+
+    <line x1="425" y1="355" x2="850" y2="355" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="390" y="359" font-size="10" fill="#94a3b8">最低(-1)</text>
+
+    <!-- 刻度标注：四分之一圈、半圈、一整圈、两圈 -->
+    <text x="475" y="286" font-size="9.5" fill="#94a3b8">1/4圈</text>
+    <text x="525" y="286" font-size="9.5" fill="#94a3b8">半圈(180°)</text>
+    <text x="625" y="286" font-size="9.5" fill="#94a3b8">1整圈(360°)</text>
+    <text x="820" y="286" font-size="9.5" fill="#94a3b8">2整圈</text>
+
+    <!-- 完整正弦虚线底纹（指引轨迹） -->
+    <path id="static-wave" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 实时生长的正弦波 -->
+    <path id="dynamic-wave" d="" fill="none" stroke="url(#wave-grad)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 波浪线上的实时跟踪点 -->
+    <circle id="wave-dot" cx="430" cy="270" r="7" fill="#e11d48" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧小车与右侧追踪点） -->
+  <line id="laser-beam" x1="275" y1="270" x2="430" y2="270" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#dbeafe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e293b">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      摩天轮在<tspan fill="#0284c7" font-weight="bold">“转圈”</tspan>，小红车在<tspan fill="#e11d48" font-weight="bold">“升降”</tspan>。把不同时间的高度拉平连起来，就画出了神奇的<tspan fill="#7c3aed" font-weight="bold">正弦波（sin）</tspan>！
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 190, cy = 270, r = 85;
+      const waveStartX = 430;
+      const totalWaveWidth = 400; // 涵盖2个完整周期 (4*PI)
+      const periods = 2;
+      const cycleDuration = 6000; // 6秒转一圈
+
+      // 绘制右侧背景参考虚线
+      const staticWave = document.getElementById('static-wave');
+      let staticD = 'M ' + waveStartX + ' ' + cy;
+      for (let x = 0; x <= totalWaveWidth; x += 2) {
+        const theta = (x / (totalWaveWidth / periods)) * 2 * Math.PI;
+        const y = cy - r * Math.sin(theta);
+        staticD += ' L ' + (waveStartX + x) + ' ' + y;
+      }
+      staticWave.setAttribute('d', staticD);
+
+      // DOM 元素引用
+      const arm = document.getElementById('ferris-arm');
+      const cart = document.getElementById('ferris-cart');
+      const cosLine = document.getElementById('triangle-cos');
+      const sinLine = document.getElementById('triangle-sin');
+      const rightAngle = document.getElementById('right-angle-mark');
+      const labelSin = document.getElementById('label-sin');
+      const labelDesc = document.getElementById('label-desc');
+      const laser = document.getElementById('laser-beam');
+      const waveDot = document.getElementById('wave-dot');
+      const dynamicWave = document.getElementById('dynamic-wave');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 逆时针匀速旋转角度 θ (弧度)
+        const theta = ((elapsed % cycleDuration) / cycleDuration) * 2 * Math.PI;
+
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta); // 屏幕坐标Y轴向下
+
+        // 1. 更新吊臂与小车位置
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 2. 更新直角三角形内部两边
+        // 水平边（余弦 cos 投影）：从圆心到小车的水平对齐位置
+        cosLine.setAttribute('x2', cartX);
+        // 竖直边（正弦 sin 高度）：从小车水平脚到底部
+        sinLine.setAttribute('x1', cartX);
+        sinLine.setAttribute('y1', cy);
+        sinLine.setAttribute('x2', cartX);
+        sinLine.setAttribute('y2', cartY);
+
+        // 绘制直角标志（小方框）
+        const sX = cartX > cx ? -8 : 8;
+        const sY = cartY > cy ? -8 : 8;
+        rightAngle.setAttribute('d', 'M ' + (cartX + sX) + ' ' + cy + ' L ' + (cartX + sX) + ' ' + (cy + sY) + ' L ' + cartX + ' ' + (cy + sY));
+
+        // 3. 更新高度数值与文案提示
+        const sinVal = Math.sin(theta);
+        labelSin.textContent = '高度 sin: ' + (sinVal >= 0 ? '+' : '') + sinVal.toFixed(2);
+        if (sinVal > 0.95) {
+          labelDesc.textContent = '🚀 升到最高峰！';
+        } else if (sinVal < -0.95) {
+          labelDesc.textContent = '⚓ 降到最低谷！';
+        } else if (Math.abs(sinVal) < 0.08) {
+          labelDesc.textContent = '⚖️ 穿过中心平线';
+        } else if (Math.cos(theta) > 0) {
+          labelDesc.textContent = sinVal > 0 ? '↗️ 正在爬升中' : '↘️ 正在下落中';
+        } else {
+          labelDesc.textContent = sinVal > 0 ? '↘️ 开始下落' : '↗️ 触底回升中';
+        }
+
+        // 4. 计算右侧波浪线上的进度（两圈为一个循环拉伸过程）
+        const progress = (elapsed % (cycleDuration * periods)) / (cycleDuration * periods);
+        const waveX = waveStartX + progress * totalWaveWidth;
+        const waveY = cartY;
+
+        // 更新波浪追踪小红点
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        // 更新水平激光参考线
+        laser.setAttribute('x1', cartX);
+        laser.setAttribute('y1', cartY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的波浪路径
+        let pathD = 'M ' + waveStartX + ' ' + cy;
+        const steps = Math.floor(progress * totalWaveWidth);
+        for (let x = 0; x <= steps; x += 2) {
+          const t = (x / (totalWaveWidth / periods)) * 2 * Math.PI;
+          const y = cy - r * Math.sin(t);
+          pathD += ' L ' + (waveStartX + x) + ' ' + y;
+        }
+        pathD += ' L ' + waveX + ' ' + waveY;
+        dynamicWave.setAttribute('d', pathD);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

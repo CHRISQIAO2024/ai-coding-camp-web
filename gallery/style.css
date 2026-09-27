@@ -337,6 +337,13 @@ h3 {
   background: var(--blue);
 }
 
+.case-card.math-sine .tag { background: #c74747; }
+.case-card.math-cosine .tag { background: #2877a7; }
+.case-card.math-tangent .tag { background: #168268; }
+.case-card.math-cotangent .tag { background: #7650a8; }
+.case-card.math-secant .tag { background: #bf7515; }
+.case-card.math-cosecant .tag { background: #b13b71; }
+
 .case-card p,
 .tool-card p,
 .principle-grid p,

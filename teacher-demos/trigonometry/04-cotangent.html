@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>余切 cot | 三角函数互动演示</title>
+  <meta name="description" content="借助头顶横切线示意，观察余切函数的变化与渐近线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色：余切使用神秘高贵的紫罗兰色调 -->
+    <linearGradient id="wave-grad-cot" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#6b21a8"/>
+    </linearGradient>
+    <linearGradient id="bar-cot" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="bar-vert-cot" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与云顶天花板 —— 三角函数（余切 cot）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">观察射线与水平切线的交点变化；0°、180°处余切未定义，接近这些角度时函数值绝对值急剧增大。</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与水平天花板切线 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#7c3aed">1. 探照灯照向云顶天花板（余切 cot）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">天花板贴在摩天轮头顶，测量光斑偏离中心的横向距离</text>
+
+  <!-- 右侧卡片：余切曲线生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#6b21a8">2. 展开时间轴（余切曲线 y = cot θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">正切是从地底冲向天空，余切则是“从九霄云外俯冲向深渊”！</text>
+
+  <!-- 左侧图形区域：圆心 (160, 270), 半径 R = 65, 云顶天花板位于 Y = 205 (270-65) -->
+  <g id="ferris-wheel-cot">
+    <!-- 地基与支架 -->
+    <line x1="160" y1="270" x2="120" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="160" y1="270" x2="200" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="105" y1="405" x2="215" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 摩天轮外环 -->
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#e9d5ff" stroke-width="2"/>
+
+    <!-- 水平中心线 (Y = 270) 与 竖直中心线 (X = 160) -->
+    <line x1="50" y1="270" x2="310" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <line x1="160" y1="120" x2="160" y2="405" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="45" y="265" font-size="10" fill="#94a3b8">中心(0)</text>
+
+    <!-- 顶部水平切线：云顶天花板 (Y = 205) -->
+    <line x1="45" y1="205" x2="335" y2="205" stroke="#94a3b8" stroke-width="2"/>
+    <text x="45" y="198" font-size="10" fill="#7c3aed" font-weight="bold">☁️ 云顶天桥 (y=1)</text>
+
+    <!-- 天桥刻度标记 -->
+    <line x1="225" y1="200" x2="225" y2="210" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="220" y="195" font-size="9" fill="#7c3aed">+1(45°)</text>
+    <line x1="95" y1="200" x2="95" y2="210" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="85" y="195" font-size="9" fill="#7c3aed">-1(135°)</text>
+    <circle cx="160" cy="205" r="3" fill="#7c3aed"/>
+    <text x="153" y="195" font-size="9" fill="#7c3aed">0(90°)</text>
+
+    <!-- 天桥上的水平余切测量条（紫罗兰色） -->
+    <line id="cot-ceiling-bar" x1="160" y1="205" x2="160" y2="205" stroke="url(#bar-cot)" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- 90度弧线：将天花板水平偏离旋转为垂直高度 -->
+    <path id="transfer-arc-cot" d="" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4,3"/>
+
+    <!-- 竖直立起来的余切测量柱（位于圆心 x=160，用于向右发射激光） -->
+    <line id="cot-vert-pillar" x1="160" y1="270" x2="160" y2="270" stroke="url(#bar-vert-cot)" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 探照灯光束（从中心穿过小车射向云顶天桥） -->
+    <line id="cot-searchlight" x1="160" y1="270" x2="160" y2="205" stroke="#f59e0b" stroke-width="2"/>
+
+    <!-- 摩天轮旋转吊臂 -->
+    <line id="cot-arm" x1="160" y1="270" x2="225" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="160" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮座舱小车（紫色主题） -->
+    <g id="cot-cart" transform="translate(225, 270)">
+      <circle cx="0" cy="0" r="11" fill="#8b5cf6" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2" fill="#7c3aed"/>
+    </g>
+
+    <!-- 天桥上的光斑 -->
+    <circle id="cot-spot" cx="160" cy="205" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="145" height="48" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
+    <text id="label-cot" x="55" y="400" font-size="12" font-weight="bold" fill="#7c3aed">余切 cot: 0.00</text>
+    <text id="label-cot-desc" x="55" y="418" font-size="10.5" fill="#6b21a8">光斑正中天顶</text>
+  </g>
+
+  <!-- 右侧坐标系与余切曲线 (起始 X=410, 周期宽=360, 中心 Y=270, 比例 R=65) -->
+  <g id="wave-system-cot">
+    <!-- 坐标轴 -->
+    <line x1="390" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="410,100 406,110 414,110" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">旋转角度 / 周期</text>
+    <text x="415" y="112" font-size="11" fill="#64748b">数值</text>
+
+    <!-- 关键基准线：+1 与 -1 -->
+    <line x1="405" y1="205" x2="850" y2="205" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="382" y="209" font-size="10" fill="#94a3b8">+1</text>
+    <line x1="405" y1="335" x2="850" y2="335" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="382" y="339" font-size="10" fill="#94a3b8">-1</text>
+
+    <!-- 余切的渐近线（结界虚线）：0°、180° 与 360°！ -->
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <line x1="590" y1="105" x2="590" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="558" y="115" width="68" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="562" y="128" font-size="9" fill="#ea580c" font-weight="bold">180° 结界线</text>
+
+    <line x1="770" y1="105" x2="770" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="738" y="115" width="68" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="742" y="128" font-size="9" fill="#ea580c" font-weight="bold">360° 结界线</text>
+
+    <!-- 角度刻度 -->
+    <text x="450" y="286" font-size="9.5" fill="#7c3aed">45°(cot=1)</text>
+    <text x="495" y="286" font-size="9.5" fill="#94a3b8">90°(0)</text>
+    <text x="535" y="286" font-size="9.5" fill="#7c3aed">135°(-1)</text>
+    <text x="675" y="286" font-size="9.5" fill="#94a3b8">270°(0)</text>
+
+    <!-- 静态参考余切曲线（浅灰底纹） -->
+    <g id="static-cot-curves" stroke="#e2e8f0" stroke-width="2.5" fill="none" stroke-dasharray="4,4"></g>
+
+    <!-- 动态绘制的余切轨迹 -->
+    <path id="dynamic-cot-curve" d="" fill="none" stroke="url(#wave-grad-cot)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 余切曲线上的追踪点 -->
+    <circle id="wave-dot-cot" cx="410" cy="270" r="7" fill="#7c3aed" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧余切测量高度与右侧追踪点） -->
+  <line id="laser-beam-cot" x1="160" y1="270" x2="410" y2="270" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#faf5ff" stroke="#f3e8ff"/>
+    <text x="15" y="10" font-size="12.5" fill="#4c1d95">
+      💡 <tspan font-weight="bold" fill="#7c3aed">一句话秒懂：</tspan>
+      余切 <tspan fill="#7c3aed" font-weight="bold">cot θ</tspan> = cos θ / sin θ；90°、270° 时函数值为 0，0°、180° 处未定义，接近渐近线时函数值绝对值急剧增大。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 160, cy = 270, r = 65;
+      const ceilingY = 205; // cy - r
+      const waveStartX = 410;
+      const cycleDuration = 8000; // 8秒转一圈
+
+      // 绘制静态参考余切曲线 (分为 0~180 与 180~360 两大周期分支)
+      const staticContainer = document.getElementById('static-cot-curves');
+      function buildCotBranch(startDeg, endDeg) {
+        let d = '';
+        for (let deg = startDeg; deg <= endDeg; deg += 1) {
+          const theta = (deg * Math.PI) / 180;
+          const cotVal = Math.cos(theta) / Math.sin(theta);
+          const rawY = cy - r * cotVal;
+          const clampedY = Math.max(105, Math.min(435, rawY));
+          const x = waveStartX + deg;
+          d += (d === '' ? 'M ' : ' L ') + x + ' ' + clampedY;
+        }
+        return d;
+      }
+      const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p1.setAttribute('d', buildCotBranch(12, 168));
+      const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p2.setAttribute('d', buildCotBranch(192, 348));
+      staticContainer.appendChild(p1);
+      staticContainer.appendChild(p2);
+
+      // DOM 元素引用
+      const arm = document.getElementById('cot-arm');
+      const cart = document.getElementById('cot-cart');
+      const searchlight = document.getElementById('cot-searchlight');
+      const ceilingBar = document.getElementById('cot-ceiling-bar');
+      const transferArc = document.getElementById('transfer-arc-cot');
+      const vertPillar = document.getElementById('cot-vert-pillar');
+      const cotSpot = document.getElementById('cot-spot');
+      const labelCot = document.getElementById('label-cot');
+      const labelCotDesc = document.getElementById('label-cot-desc');
+      const laser = document.getElementById('laser-beam-cot');
+      const waveDot = document.getElementById('wave-dot-cot');
+      const dynamicWave = document.getElementById('dynamic-cot-curve');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 旋转角度 (0 到 360度)
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+        const currentDeg = progress * 360;
+        const theta = (currentDeg * Math.PI) / 180;
+
+        // 摩天轮小车位置
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta);
+
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 计算余切值 cot = cos / sin
+        const sinVal = Math.sin(theta);
+        const cosVal = Math.cos(theta);
+        const cotVal = Math.abs(sinVal) > 0.0001 ? cosVal / sinVal : 999999;
+
+        // 天桥光斑 X 坐标: cx + r * cot(theta)
+        const rawSpotX = cx + r * cotVal;
+        const clampedSpotX = Math.max(35, Math.min(285, rawSpotX));
+
+        // 对应的纵向转换高度: cy - r * cotVal
+        const rawTargetY = cy - r * cotVal;
+        const clampedTargetY = Math.max(105, Math.min(435, rawTargetY));
+
+        // 1. 更新探照灯光束（穿过小车射向云顶天桥）
+        searchlight.setAttribute('x1', cx);
+        searchlight.setAttribute('y1', cy);
+        searchlight.setAttribute('x2', clampedSpotX);
+        searchlight.setAttribute('y2', ceilingY);
+
+        // 2. 更新天桥上的水平紫色余切棒
+        ceilingBar.setAttribute('x1', cx);
+        ceilingBar.setAttribute('y1', ceilingY);
+        ceilingBar.setAttribute('x2', clampedSpotX);
+        ceilingBar.setAttribute('y2', ceilingY);
+
+        cotSpot.setAttribute('cx', clampedSpotX);
+
+        // 3. 将天桥水平距离转换为竖直测量高度
+        vertPillar.setAttribute('x1', cx);
+        vertPillar.setAttribute('y1', cy);
+        vertPillar.setAttribute('x2', cx);
+        vertPillar.setAttribute('y2', clampedTargetY);
+
+        // 弧线转换导引
+        const dist = Math.abs(r * cotVal);
+        if (dist > 1.5 && dist < 160) {
+          const sweep = cotVal >= 0 ? 0 : 1;
+          transferArc.setAttribute('d', 'M ' + clampedSpotX + ' ' + ceilingY + ' A ' + dist + ' ' + dist + ' 0 0 ' + sweep + ' ' + cx + ' ' + clampedTargetY);
+        } else {
+          transferArc.setAttribute('d', '');
+        }
+
+        // 4. 文字状态提示
+        const isNearZeroOr180 = Math.abs(currentDeg - 0) < 6 || Math.abs(currentDeg - 180) < 6 || Math.abs(currentDeg - 360) < 6;
+        if (isNearZeroOr180) {
+          labelCot.textContent = '余切 cot: 接近渐近线';
+          labelCotDesc.textContent = '0°、180°处未定义；附近函数值急剧变化';
+        } else if (Math.abs(cotVal) < 0.08) {
+          labelCot.textContent = '余切 cot: 0.00 (90°/270°)';
+          labelCotDesc.textContent = '🎯 正中头顶，偏离为 0';
+        } else if (Math.abs(Math.abs(cotVal) - 1.0) < 0.1) {
+          labelCot.textContent = '余切 cot: ' + (cotVal > 0 ? '+1.00 (45°)' : '-1.00 (135°)');
+          labelCotDesc.textContent = '⭐ 45度偏角，偏离正好等于半径';
+        } else {
+          labelCot.textContent = '余切 cot: ' + (cotVal >= 0 ? '+' : '') + cotVal.toFixed(2);
+          labelCotDesc.textContent = cotVal > 0 ? '↘️ 从天际俯冲下降' : '↘️ 潜入地底深渊';
+        }
+
+        // 5. 右侧波浪进度
+        const waveX = waveStartX + currentDeg;
+        const waveY = clampedTargetY;
+
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        laser.setAttribute('x1', cx);
+        laser.setAttribute('y1', clampedTargetY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的余切曲线
+        let d = '';
+        if (currentDeg <= 180) {
+          d = buildCotBranch(12, Math.min(Math.floor(currentDeg), 168));
+        } else {
+          d = buildCotBranch(12, 168) + ' ' + buildCotBranch(192, Math.min(Math.floor(currentDeg), 348));
+        }
+        dynamicWave.setAttribute('d', d);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

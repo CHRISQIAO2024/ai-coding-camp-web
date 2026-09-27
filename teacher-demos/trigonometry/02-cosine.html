@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>余弦 cos | 三角函数互动演示</title>
+  <meta name="description" content="观察摩天轮座舱的水平位置与余弦曲线之间的联系。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色 -->
+    <linearGradient id="wave-grad-cos" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="bar-cos" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="bar-vertical-cos" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与地面影子 —— 三角函数（余弦 cos）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">阳光从正上方照下来，小车在地面上的“左右影子”忽长忽短；拉开时间轴，就画出了“从山顶起跑”的余弦波！</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与地面影子 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#0284c7">1. 摩天轮与阳光投影（余弦 cos）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">阳光垂直照下，蓝色地杠记录小车的“左右位置”</text>
+
+  <!-- 右侧卡片：余弦波生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#2563eb">2. 展开时间轴（余弦波波浪线 y = cos θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">把左右影子的长度立起来随时间画出，起点就在最高峰(+1)！</text>
+
+  <!-- 左侧图形区域：圆心 (190, 270), 半径 R = 85 -->
+  <g id="ferris-wheel-cos">
+    <!-- 地基与支架 -->
+    <line x1="190" y1="270" x2="145" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="190" y1="270" x2="235" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="125" y1="405" x2="255" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 顶部阳光小标志 -->
+    <g transform="translate(190, 155)">
+      <circle cx="0" cy="0" r="7" fill="#fbbf24"/>
+      <line x1="-12" y1="0" x2="-9" y2="0" stroke="#f59e0b" stroke-width="1.5"/>
+      <line x1="9" y1="0" x2="12" y2="0" stroke="#f59e0b" stroke-width="1.5"/>
+      <line x1="0" y1="-12" x2="0" y2="-9" stroke="#f59e0b" stroke-width="1.5"/>
+      <line x1="0" y1="9" x2="0" y2="12" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="14" y="4" font-size="10" fill="#d97706" font-weight="bold">☀️ 垂直光线</text>
+    </g>
+
+    <!-- 摩天轮外环轨道 -->
+    <circle cx="190" cy="270" r="85" fill="none" stroke="#f1f5f9" stroke-width="12"/>
+    <circle cx="190" cy="270" r="85" fill="none" stroke="#bae6fd" stroke-width="2"/>
+
+    <!-- 水平中心线 (基准地面) -->
+    <line x1="60" y1="270" x2="320" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="50" y="265" font-size="10" fill="#94a3b8">中心基准(0)</text>
+
+    <!-- 阳光垂直投射虚线（从小车落到水平地面影子） -->
+    <line id="sunlight-ray" x1="275" y1="270" x2="275" y2="270" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- 地面蓝色水平影子棒（余弦 cos） -->
+    <line id="shadow-cos-bar" x1="190" y1="270" x2="275" y2="270" stroke="url(#bar-cos)" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- 90度弧线：将水平影子长度引导旋转为纵向高度 -->
+    <path id="transfer-arc" d="" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,3"/>
+
+    <!-- 立起来的垂直余弦测量柱（用于水平发射激光到右图） -->
+    <line id="vertical-cos-pillar" x1="190" y1="270" x2="190" y2="185" stroke="url(#bar-vertical-cos)" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 摩天轮转动吊臂 -->
+    <line id="cos-arm" x1="190" y1="270" x2="275" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="190" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮座舱小车（蓝色主题） -->
+    <g id="cos-cart" transform="translate(275, 270)">
+      <circle cx="0" cy="0" r="13" fill="#0284c7" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="6" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2.5" fill="#0284c7"/>
+    </g>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="140" height="48" rx="8" fill="#f0f9ff" stroke="#bae6fd"/>
+    <text id="label-cos" x="55" y="400" font-size="12" font-weight="bold" fill="#0284c7">余弦 cos: +1.00</text>
+    <text id="label-cos-desc" x="55" y="418" font-size="10.5" fill="#0369a1">影子在最右端（起点）</text>
+  </g>
+
+  <!-- 右侧坐标系与波浪线 (起始 X=430, 宽=400, 中心 Y=270, 振幅=85) -->
+  <g id="wave-system-cos">
+    <!-- 坐标轴 -->
+    <line x1="410" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="430" y1="145" x2="430" y2="395" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="430,140 426,150 434,150" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">时间 / 旋转圈数</text>
+    <text x="435" y="152" font-size="11" fill="#64748b">数值</text>
+
+    <!-- 峰值与谷值基准虚线 -->
+    <line x1="425" y1="185" x2="850" y2="185" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="390" y="189" font-size="10" fill="#94a3b8">山顶(+1)</text>
+
+    <line x1="425" y1="355" x2="850" y2="355" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="390" y="359" font-size="10" fill="#94a3b8">谷底(-1)</text>
+
+    <!-- 关键角度与位置标注 -->
+    <text x="430" y="172" font-size="10" fill="#0284c7" font-weight="bold">起点(+1)</text>
+    <text x="520" y="286" font-size="9.5" fill="#94a3b8">1/4圈(0)</text>
+    <text x="618" y="286" font-size="9.5" fill="#94a3b8">半圈(-1)</text>
+    <text x="720" y="286" font-size="9.5" fill="#94a3b8">3/4圈(0)</text>
+    <text x="818" y="286" font-size="9.5" fill="#94a3b8">1整圈(+1)</text>
+
+    <!-- 浅粉色虚线：正弦对比参考线 (让孩子一眼看清正弦与余弦的差异) -->
+    <path id="compare-sin-wave" d="" fill="none" stroke="#fbcfe8" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="760" y="380" font-size="10" fill="#f472b6">-- 对比: 正弦波(从0起步)</text>
+
+    <!-- 完整余弦虚线底纹（指引轨迹） -->
+    <path id="static-wave-cos" d="" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4,4"/>
+
+    <!-- 实时生长的余弦波 -->
+    <path id="dynamic-wave-cos" d="" fill="none" stroke="url(#wave-grad-cos)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 波浪线上的实时跟踪点 -->
+    <circle id="wave-dot-cos" cx="430" cy="185" r="7" fill="#0284c7" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧立起的余弦高度与右侧追踪点） -->
+  <line id="laser-beam-cos" x1="190" y1="185" x2="430" y2="185" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#eff6ff" stroke="#dbeafe"/>
+    <text x="15" y="10" font-size="12.5" fill="#1e293b">
+      💡 <tspan font-weight="bold" fill="#0284c7">一句话秒懂：</tspan>
+      正弦 <tspan fill="#e11d48" font-weight="bold">sin</tspan> 测<tspan fill="#e11d48" font-weight="bold">高低</tspan>，余弦 <tspan fill="#0284c7" font-weight="bold">cos</tspan> 测<tspan fill="#0284c7" font-weight="bold">左右</tspan>！它们都是相同的波浪，但余弦<tspan fill="#2563eb" font-weight="bold">从山顶（+1）</tspan>起跑，比正弦早了整整 <tspan font-weight="bold">1/4 圈</tspan>！
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 190, cy = 270, r = 85;
+      const waveStartX = 430;
+      const totalWaveWidth = 400; // 涵盖2个完整周期 (4*PI)
+      const periods = 2;
+      const cycleDuration = 6000; // 6秒转一圈
+
+      // 1. 绘制对比参考正弦波 (浅粉色)
+      const sinCompareWave = document.getElementById('compare-sin-wave');
+      let sinD = 'M ' + waveStartX + ' ' + cy;
+      for (let x = 0; x <= totalWaveWidth; x += 2) {
+        const theta = (x / (totalWaveWidth / periods)) * 2 * Math.PI;
+        const y = cy - r * Math.sin(theta);
+        sinD += ' L ' + (waveStartX + x) + ' ' + y;
+      }
+      sinCompareWave.setAttribute('d', sinD);
+
+      // 2. 绘制右侧背景参考余弦波 (浅灰虚线)
+      const staticWave = document.getElementById('static-wave-cos');
+      let staticD = 'M ' + waveStartX + ' ' + (cy - r);
+      for (let x = 0; x <= totalWaveWidth; x += 2) {
+        const theta = (x / (totalWaveWidth / periods)) * 2 * Math.PI;
+        const y = cy - r * Math.cos(theta); // cos 曲线
+        staticD += ' L ' + (waveStartX + x) + ' ' + y;
+      }
+      staticWave.setAttribute('d', staticD);
+
+      // DOM 元素引用
+      const arm = document.getElementById('cos-arm');
+      const cart = document.getElementById('cos-cart');
+      const sunlightRay = document.getElementById('sunlight-ray');
+      const shadowBar = document.getElementById('shadow-cos-bar');
+      const transferArc = document.getElementById('transfer-arc');
+      const verticalPillar = document.getElementById('vertical-cos-pillar');
+      const labelCos = document.getElementById('label-cos');
+      const labelCosDesc = document.getElementById('label-cos-desc');
+      const laser = document.getElementById('laser-beam-cos');
+      const waveDot = document.getElementById('wave-dot-cos');
+      const dynamicWave = document.getElementById('dynamic-wave-cos');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 逆时针匀速旋转角度 θ (弧度)
+        const theta = ((elapsed % cycleDuration) / cycleDuration) * 2 * Math.PI;
+
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta); // 屏幕坐标Y轴向下
+
+        // 1. 更新吊臂与小车位置
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 2. 阳光从车身垂直投向地面
+        sunlightRay.setAttribute('x1', cartX);
+        sunlightRay.setAttribute('y1', cartY);
+        sunlightRay.setAttribute('x2', cartX);
+        sunlightRay.setAttribute('y2', cy);
+
+        // 3. 水平地面影子棒（从圆心 cx 到 cartX）
+        shadowBar.setAttribute('x1', cx);
+        shadowBar.setAttribute('y1', cy);
+        shadowBar.setAttribute('x2', cartX);
+        shadowBar.setAttribute('y2', cy);
+
+        // 4. 将水平影子转换为垂直高度：
+        // 目标高度为 cy - r * cos(theta)
+        const cosVal = Math.cos(theta);
+        const targetY = cy - r * cosVal;
+
+        verticalPillar.setAttribute('x1', cx);
+        verticalPillar.setAttribute('y1', cy);
+        verticalPillar.setAttribute('x2', cx);
+        verticalPillar.setAttribute('y2', targetY);
+
+        // 旋转导引弧线
+        const dist = Math.abs(r * cosVal);
+        if (dist > 1.5) {
+          const sweep = cosVal >= 0 ? 0 : 1;
+          transferArc.setAttribute('d', 'M ' + cartX + ' ' + cy + ' A ' + dist + ' ' + dist + ' 0 0 ' + sweep + ' ' + cx + ' ' + targetY);
+        } else {
+          transferArc.setAttribute('d', '');
+        }
+
+        // 5. 更新状态与文案
+        labelCos.textContent = '余弦 cos: ' + (cosVal >= 0 ? '+' : '') + cosVal.toFixed(2);
+        if (cosVal > 0.95) {
+          labelCosDesc.textContent = '🏔️ 位于最右端 (山顶+1)';
+        } else if (cosVal < -0.95) {
+          labelCosDesc.textContent = '🌊 位于最左端 (谷底-1)';
+        } else if (Math.abs(cosVal) < 0.08) {
+          labelCosDesc.textContent = '⚖️ 影子缩回正中心 (0)';
+        } else if (Math.sin(theta) > 0) {
+          labelCosDesc.textContent = cosVal > 0 ? '⬅️ 影子向左缩短' : '⬅️ 影子向左伸长';
+        } else {
+          labelCosDesc.textContent = cosVal < 0 ? '➡️ 影子向右缩短' : '➡️ 影子向右伸长';
+        }
+
+        // 6. 右侧波浪进度计算
+        const progress = (elapsed % (cycleDuration * periods)) / (cycleDuration * periods);
+        const waveX = waveStartX + progress * totalWaveWidth;
+        const waveY = targetY; // 对应 cos 高度
+
+        // 更新波浪追踪小蓝点
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        // 更新水平激光指示线（从垂直测量柱直达波浪点）
+        laser.setAttribute('x1', cx);
+        laser.setAttribute('y1', targetY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的余弦波轨迹
+        let pathD = 'M ' + waveStartX + ' ' + (cy - r);
+        const steps = Math.floor(progress * totalWaveWidth);
+        for (let x = 0; x <= steps; x += 2) {
+          const t = (x / (totalWaveWidth / periods)) * 2 * Math.PI;
+          const y = cy - r * Math.cos(t);
+          pathD += ' L ' + (waveStartX + x) + ' ' + y;
+        }
+        pathD += ' L ' + waveX + ' ' + waveY;
+        dynamicWave.setAttribute('d', pathD);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

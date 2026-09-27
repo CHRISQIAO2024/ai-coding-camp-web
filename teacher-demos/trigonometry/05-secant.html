@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>正割 sec | 三角函数互动演示</title>
+  <meta name="description" content="从单位圆与余弦出发，观察正割函数的倒数关系和取值范围。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色：正割使用耀眼的落日橙与亮金琥珀色 -->
+    <linearGradient id="wave-grad-sec" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#c2410c"/>
+      <stop offset="50%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <linearGradient id="beam-grad-sec" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <linearGradient id="pillar-grad-sec" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与斜边光束 —— 三角函数（正割 sec）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">正割 sec θ = 1 / cos θ；绝对值表示对应距离比例，负号表示有向坐标方向。</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与光束斜边 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#ea580c">1. 探照灯光束的拉伸（正割 sec）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">sec θ = 1 / cos θ；|sec θ| 对应距离比例，正负号表示方向</text>
+
+  <!-- 右侧卡片：正割曲线生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#c2410c">2. 展开时间轴（正割曲线 y = sec θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">像两只张开的“U型碗”，中间（-1到+1）是绝对进不去的禁区！</text>
+
+  <!-- 左侧图形区域：圆心 (160, 270), 半径 R = 65, 切线墙位于 X = 225 -->
+  <g id="ferris-wheel-sec">
+    <!-- 地基与支架 -->
+    <line x1="160" y1="270" x2="120" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="160" y1="270" x2="200" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="105" y1="405" x2="215" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 摩天轮外环 -->
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#fed7aa" stroke-width="2"/>
+
+    <!-- 水平地平线基准 (Y = 270) 与 中心垂线 -->
+    <line x1="45" y1="270" x2="245" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="45" y="265" font-size="10" fill="#94a3b8">中心基准(0)</text>
+
+    <!-- 右侧垂直切线墙 (X = 225) -->
+    <line x1="225" y1="105" x2="225" y2="435" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="230" y="115" font-size="10" fill="#94a3b8">切线墙 (x=1)</text>
+
+    <!-- 地面蓝色余弦影子（直角边 1） -->
+    <line id="sec-cos-shadow" x1="160" y1="270" x2="225" y2="270" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 有向截距示意；其绝对值对应距离比例 -->
+    <line id="sec-hypotenuse" x1="160" y1="270" x2="225" y2="270" stroke="url(#beam-grad-sec)" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 竖直立起来的正割测量柱（在 x=160 处，用于水平激光连接右图） -->
+    <line id="sec-vert-pillar" x1="160" y1="270" x2="160" y2="205" stroke="url(#pillar-grad-sec)" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- 旋转吊臂 -->
+    <line id="sec-arm" x1="160" y1="270" x2="225" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="160" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮小车（橙色） -->
+    <g id="sec-cart" transform="translate(225, 270)">
+      <circle cx="0" cy="0" r="11" fill="#ea580c" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2" fill="#c2410c"/>
+    </g>
+
+    <!-- 切线墙光斑 -->
+    <circle id="sec-spot" cx="225" cy="270" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="145" height="48" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+    <text id="label-sec" x="55" y="400" font-size="12" font-weight="bold" fill="#ea580c">正割 sec: 1.00</text>
+    <text id="label-sec-desc" x="55" y="418" font-size="10.5" fill="#c2410c">最短距离 (等于半径)</text>
+  </g>
+
+  <!-- 右侧坐标系与正割曲线 (起始 X=410, 周期宽=360, 中心 Y=270, 比例 R=65) -->
+  <g id="wave-system-sec">
+    <!-- 坐标轴 -->
+    <line x1="390" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="410,100 406,110 414,110" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">旋转角度 / 周期</text>
+    <text x="415" y="112" font-size="11" fill="#64748b">数值</text>
+
+    <!-- 中间禁区阴影：-1 到 +1 之间没有任何曲线！ -->
+    <rect x="410" y="205" width="440" height="130" fill="#f1f5f9" opacity="0.6"/>
+    <text x="560" y="274" font-size="10" fill="#94a3b8" text-anchor="middle">取值范围：sec θ ≤ -1 或 sec θ ≥ 1</text>
+
+    <!-- 关键基准线：+1 与 -1 -->
+    <line x1="405" y1="205" x2="850" y2="205" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="382" y="209" font-size="10" fill="#ea580c" font-weight="bold">+1</text>
+    <line x1="405" y1="335" x2="850" y2="335" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="382" y="339" font-size="10" fill="#ea580c" font-weight="bold">-1</text>
+
+    <!-- 对照参考：禁区内的余弦波（浅蓝色虚线） -->
+    <path id="sec-compare-cos" d="" fill="none" stroke="#bae6fd" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="760" y="255" font-size="9" fill="#0284c7">-- 对照: 余弦波 cos</text>
+
+    <!-- 渐近线（结界虚线）：90° 与 270°！ -->
+    <line x1="500" y1="105" x2="500" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="468" y="115" width="64" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="472" y="128" font-size="9" fill="#ea580c" font-weight="bold">90° 结界线</text>
+
+    <line x1="680" y1="105" x2="680" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="648" y="115" width="64" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="652" y="128" font-size="9" fill="#ea580c" font-weight="bold">270° 结界线</text>
+
+    <!-- 角度刻度 -->
+    <text x="405" y="286" font-size="9.5" fill="#ea580c" font-weight="bold">0°(+1)</text>
+    <text x="445" y="286" font-size="9.5" fill="#94a3b8">60°(2)</text>
+    <text x="580" y="286" font-size="9.5" fill="#ea580c" font-weight="bold">180°(-1)</text>
+    <text x="760" y="286" font-size="9.5" fill="#ea580c" font-weight="bold">360°(+1)</text>
+
+    <!-- 静态参考正割曲线（浅灰底纹） -->
+    <g id="static-sec-curves" stroke="#e2e8f0" stroke-width="2.5" fill="none" stroke-dasharray="4,4"></g>
+
+    <!-- 动态绘制的正割轨迹 -->
+    <path id="dynamic-sec-curve" d="" fill="none" stroke="url(#wave-grad-sec)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 正割曲线上的追踪点 -->
+    <circle id="wave-dot-sec" cx="410" cy="205" r="7" fill="#ea580c" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧测量高度与右侧追踪点） -->
+  <line id="laser-beam-sec" x1="160" y1="205" x2="410" y2="205" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="15" y="10" font-size="12.5" fill="#7c2d12">
+      💡 <tspan font-weight="bold" fill="#ea580c">一句话秒懂：</tspan>
+      正割 <tspan fill="#ea5800" font-weight="bold">sec θ</tspan> = 1 / <tspan fill="#0284c7" font-weight="bold">cos θ</tspan>。余弦绝对值越小，正割绝对值越大；正割的取值不落在 -1 与 1 之间，负号表示方向。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 160, cy = 270, r = 65;
+      const wallX = 225; // cx + r
+      const waveStartX = 410;
+      const cycleDuration = 8000; // 8秒转一圈
+
+      // 1. 绘制对照余弦波
+      const cosCompare = document.getElementById('sec-compare-cos');
+      let cosD = 'M ' + waveStartX + ' ' + (cy - r);
+      for (let deg = 0; deg <= 360; deg += 2) {
+        const theta = (deg * Math.PI) / 180;
+        const y = cy - r * Math.cos(theta);
+        cosD += ' L ' + (waveStartX + deg) + ' ' + y;
+      }
+      cosCompare.setAttribute('d', cosD);
+
+      // 2. 绘制静态参考正割曲线 (0~90, 90~270, 270~360 三分支)
+      const staticContainer = document.getElementById('static-sec-curves');
+      function buildSecBranch(startDeg, endDeg) {
+        let d = '';
+        for (let deg = startDeg; deg <= endDeg; deg += 1) {
+          const theta = (deg * Math.PI) / 180;
+          const cosVal = Math.cos(theta);
+          const secVal = 1.0 / cosVal;
+          const rawY = cy - r * secVal;
+          const clampedY = Math.max(105, Math.min(435, rawY));
+          const x = waveStartX + deg;
+          d += (d === '' ? 'M ' : ' L ') + x + ' ' + clampedY;
+        }
+        return d;
+      }
+      const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p1.setAttribute('d', buildSecBranch(0, 75));
+      const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p2.setAttribute('d', buildSecBranch(105, 255));
+      const p3 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p3.setAttribute('d', buildSecBranch(285, 360));
+      staticContainer.appendChild(p1);
+      staticContainer.appendChild(p2);
+      staticContainer.appendChild(p3);
+
+      // DOM 元素引用
+      const arm = document.getElementById('sec-arm');
+      const cart = document.getElementById('sec-cart');
+      const hypotenuse = document.getElementById('sec-hypotenuse');
+      const cosShadow = document.getElementById('sec-cos-shadow');
+      const vertPillar = document.getElementById('sec-vert-pillar');
+      const secSpot = document.getElementById('sec-spot');
+      const labelSec = document.getElementById('label-sec');
+      const labelSecDesc = document.getElementById('label-sec-desc');
+      const laser = document.getElementById('laser-beam-sec');
+      const waveDot = document.getElementById('wave-dot-sec');
+      const dynamicWave = document.getElementById('dynamic-sec-curve');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 旋转角度 (0 到 360度)
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+        const currentDeg = progress * 360;
+        const theta = (currentDeg * Math.PI) / 180;
+
+        // 摩天轮小车位置
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta);
+
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 计算余弦与正割
+        const cosVal = Math.cos(theta);
+        const secVal = Math.abs(cosVal) > 0.0001 ? 1.0 / cosVal : 999999;
+
+        // 计算斜边终点在切线墙上的投影 (用于左图光斑)
+        const tanVal = Math.tan(theta);
+        const rawSpotY = cy - r * tanVal;
+        const clampedSpotY = Math.max(105, Math.min(435, rawSpotY));
+
+        // 1. 斜边光束：从圆心射向切线墙
+        hypotenuse.setAttribute('x1', cx);
+        hypotenuse.setAttribute('y1', cy);
+        hypotenuse.setAttribute('x2', wallX);
+        hypotenuse.setAttribute('y2', clampedSpotY);
+
+        secSpot.setAttribute('cy', clampedSpotY);
+
+        // 2. 地面蓝色余弦影子
+        cosShadow.setAttribute('x1', cx);
+        cosShadow.setAttribute('y1', cy);
+        cosShadow.setAttribute('x2', cartX);
+        cosShadow.setAttribute('y2', cy);
+
+        // 3. 竖直立起来的正割测量柱（高度对应 secVal）
+        const rawTargetY = cy - r * secVal;
+        const clampedTargetY = Math.max(105, Math.min(435, rawTargetY));
+
+        vertPillar.setAttribute('x1', cx);
+        vertPillar.setAttribute('y1', cy);
+        vertPillar.setAttribute('x2', cx);
+        vertPillar.setAttribute('y2', clampedTargetY);
+
+        // 4. 文字状态提示
+        const isNear90or270 = Math.abs(currentDeg - 90) < 6 || Math.abs(currentDeg - 270) < 6;
+        if (isNear90or270) {
+          labelSec.textContent = '正割 sec: 接近渐近线';
+          labelSecDesc.textContent = '90°、270°处未定义；附近绝对值急增';
+        } else if (Math.abs(currentDeg - 0) < 4 || Math.abs(currentDeg - 360) < 4) {
+          labelSec.textContent = '正割 sec: +1.00';
+          labelSecDesc.textContent = '函数值 +1；绝对值为 1';
+        } else if (Math.abs(currentDeg - 180) < 4) {
+          labelSec.textContent = '正割 sec: -1.00';
+          labelSecDesc.textContent = '函数值 -1；负号表示方向';
+        } else if (Math.abs(Math.abs(secVal) - 2.0) < 0.15) {
+          labelSec.textContent = '正割 sec: ' + (secVal > 0 ? '+2.00 (60°)' : '-2.00 (120°)');
+          labelSecDesc.textContent = '余弦绝对值为 1/2，正割绝对值为 2';
+        } else {
+          labelSec.textContent = '正割 sec: ' + (secVal >= 0 ? '+' : '') + secVal.toFixed(2);
+          labelSecDesc.textContent = secVal > 0 ? '↗️ 光束正在向外拉长' : '↘️ 倒扣碗底部回弹';
+        }
+
+        // 5. 右侧曲线追踪
+        const waveX = waveStartX + currentDeg;
+        const waveY = clampedTargetY;
+
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        laser.setAttribute('x1', cx);
+        laser.setAttribute('y1', clampedTargetY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的正割曲线
+        let d = '';
+        if (currentDeg <= 90) {
+          d = buildSecBranch(0, Math.min(Math.floor(currentDeg), 75));
+        } else if (currentDeg <= 270) {
+          d = buildSecBranch(0, 75) + ' ' + buildSecBranch(105, Math.min(Math.floor(currentDeg), 255));
+        } else {
+          d = buildSecBranch(0, 75) + ' ' + buildSecBranch(105, 255) + ' ' + buildSecBranch(285, Math.min(Math.floor(currentDeg), 360));
+        }
+        dynamicWave.setAttribute('d', d);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

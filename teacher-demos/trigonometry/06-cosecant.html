@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>余割 csc | 三角函数互动演示</title>
+  <meta name="description" content="从单位圆与正弦出发，观察余割函数的倒数关系和取值范围。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色：余割使用亮丽的洋红/玫瑰绯红宝石色调 -->
+    <linearGradient id="wave-grad-csc" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#be185d"/>
+      <stop offset="50%" stop-color="#db2777"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="beam-grad-csc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+    <linearGradient id="pillar-grad-csc" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#db2777"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与天桥斜光束 —— 三角函数（余割 csc）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">余割 csc θ = 1 / sin θ；绝对值表示对应距离比例，负号表示有向坐标方向。</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与天桥斜边光束 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#db2777">1. 射向天桥的光束总长（余割 csc）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">直角三角形斜边：csc = 1 / 高度(sin)</text>
+
+  <!-- 右侧卡片：余割曲线生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#be185d">2. 展开时间轴（余割曲线 y = csc θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">碗底刚好落在 90° 最高点，中间（-1到+1）同样是严禁进入的禁区！</text>
+
+  <!-- 左侧图形区域：圆心 (160, 270), 半径 R = 65, 云顶天花板位于 Y = 205 (270-65) -->
+  <g id="ferris-wheel-csc">
+    <!-- 地基与支架 -->
+    <line x1="160" y1="270" x2="120" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="160" y1="270" x2="200" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="105" y1="405" x2="215" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 摩天轮外环 -->
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#fbcfe8" stroke-width="2"/>
+
+    <!-- 水平中心线 (Y = 270) 与 垂直中心线 (X = 160) -->
+    <line x1="45" y1="270" x2="310" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <line x1="160" y1="120" x2="160" y2="405" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="45" y="265" font-size="10" fill="#94a3b8">中心基准(0)</text>
+
+    <!-- 顶部水平切线：云顶天桥 (Y = 205) -->
+    <line x1="45" y1="205" x2="335" y2="205" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="45" y="198" font-size="10" fill="#94a3b8">☁️ 云顶天桥 (y=1)</text>
+
+    <!-- 竖直正弦高度红条（直角边 1） -->
+    <line id="csc-sin-bar" x1="160" y1="270" x2="160" y2="270" stroke="#f43f5e" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 有向截距示意；其绝对值对应距离比例 -->
+    <line id="csc-hypotenuse" x1="160" y1="270" x2="160" y2="205" stroke="url(#beam-grad-csc)" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 竖直立起来的余割测量柱（在 x=160 处，用于向右发射激光） -->
+    <line id="csc-vert-pillar" x1="160" y1="270" x2="160" y2="205" stroke="url(#pillar-grad-csc)" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- 摩天轮旋转吊臂 -->
+    <line id="csc-arm" x1="160" y1="270" x2="225" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="160" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮小车（玫红宝石色） -->
+    <g id="csc-cart" transform="translate(225, 270)">
+      <circle cx="0" cy="0" r="11" fill="#db2777" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2" fill="#be185d"/>
+    </g>
+
+    <!-- 天桥光斑 -->
+    <circle id="csc-spot" cx="160" cy="205" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="145" height="48" rx="8" fill="#fdf2f8" stroke="#fbcfe8"/>
+    <text id="label-csc" x="55" y="400" font-size="12" font-weight="bold" fill="#db2777">余割 csc: 1.00</text>
+    <text id="label-csc-desc" x="55" y="418" font-size="10.5" fill="#be185d">90°垂直最短 (等于半径 1)</text>
+  </g>
+
+  <!-- 右侧坐标系与余割曲线 (起始 X=410, 周期宽=360, 中心 Y=270, 比例 R=65) -->
+  <g id="wave-system-csc">
+    <!-- 坐标轴 -->
+    <line x1="390" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="410,100 406,110 414,110" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">旋转角度 / 周期</text>
+    <text x="415" y="112" font-size="11" fill="#64748b">数值</text>
+
+    <!-- 中间禁区阴影：-1 到 +1 之间没有任何曲线！ -->
+    <rect x="410" y="205" width="440" height="130" fill="#f1f5f9" opacity="0.6"/>
+    <text x="560" y="274" font-size="10" fill="#94a3b8" text-anchor="middle">取值范围：csc θ ≤ -1 或 csc θ ≥ 1</text>
+
+    <!-- 关键基准线：+1 与 -1 -->
+    <line x1="405" y1="205" x2="850" y2="205" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="382" y="209" font-size="10" fill="#db2777" font-weight="bold">+1</text>
+    <line x1="405" y1="335" x2="850" y2="335" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="382" y="339" font-size="10" fill="#db2777" font-weight="bold">-1</text>
+
+    <!-- 对照参考：禁区内的正弦波（浅粉红色虚线） -->
+    <path id="csc-compare-sin" d="" fill="none" stroke="#fbcfe8" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="760" y="255" font-size="9" fill="#f43f5e">-- 对照: 正弦波 sin</text>
+
+    <!-- 渐近线（结界虚线）：0°、180° 与 360°！ -->
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <line x1="590" y1="105" x2="590" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="558" y="115" width="68" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="562" y="128" font-size="9" fill="#ea580c" font-weight="bold">180° 结界线</text>
+
+    <line x1="770" y1="105" x2="770" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="738" y="115" width="68" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="742" y="128" font-size="9" fill="#ea580c" font-weight="bold">360° 结界线</text>
+
+    <!-- 角度刻度 -->
+    <text x="435" y="286" font-size="9.5" fill="#94a3b8">30°(2)</text>
+    <text x="495" y="286" font-size="9.5" fill="#db2777" font-weight="bold">90°(+1)</text>
+    <text x="545" y="286" font-size="9.5" fill="#94a3b8">150°(2)</text>
+    <text x="675" y="286" font-size="9.5" fill="#db2777" font-weight="bold">270°(-1)</text>
+
+    <!-- 静态参考余割曲线（浅灰底纹） -->
+    <g id="static-csc-curves" stroke="#e2e8f0" stroke-width="2.5" fill="none" stroke-dasharray="4,4"></g>
+
+    <!-- 动态绘制的余割轨迹 -->
+    <path id="dynamic-csc-curve" d="" fill="none" stroke="url(#wave-grad-csc)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 余割曲线上的追踪点 -->
+    <circle id="wave-dot-csc" cx="410" cy="205" r="7" fill="#db2777" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧测量高度与右侧追踪点） -->
+  <line id="laser-beam-csc" x1="160" y1="205" x2="410" y2="205" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#fdf2f8" stroke="#fbcfe8"/>
+    <text x="15" y="10" font-size="12.5" fill="#831843">
+      💡 <tspan font-weight="bold" fill="#db2777">一句话秒懂：</tspan>
+      余割 <tspan fill="#db2777" font-weight="bold">csc θ</tspan> = 1 / <tspan fill="#f43f5e" font-weight="bold">sin θ</tspan>。正弦绝对值越小，余割绝对值越大；余割的取值不落在 -1 与 1 之间，负号表示方向。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 160, cy = 270, r = 65;
+      const ceilingY = 205; // cy - r
+      const waveStartX = 410;
+      const cycleDuration = 8000; // 8秒转一圈
+
+      // 1. 绘制对照正弦波
+      const sinCompare = document.getElementById('csc-compare-sin');
+      let sinD = 'M ' + waveStartX + ' ' + cy;
+      for (let deg = 0; deg <= 360; deg += 2) {
+        const theta = (deg * Math.PI) / 180;
+        const y = cy - r * Math.sin(theta);
+        sinD += ' L ' + (waveStartX + deg) + ' ' + y;
+      }
+      sinCompare.setAttribute('d', sinD);
+
+      // 2. 绘制静态参考余割曲线 (0~180 与 180~360 两大U型碗分支)
+      const staticContainer = document.getElementById('static-csc-curves');
+      function buildCscBranch(startDeg, endDeg) {
+        let d = '';
+        for (let deg = startDeg; deg <= endDeg; deg += 1) {
+          const theta = (deg * Math.PI) / 180;
+          const sinVal = Math.sin(theta);
+          const cscVal = 1.0 / sinVal;
+          const rawY = cy - r * cscVal;
+          const clampedY = Math.max(105, Math.min(435, rawY));
+          const x = waveStartX + deg;
+          d += (d === '' ? 'M ' : ' L ') + x + ' ' + clampedY;
+        }
+        return d;
+      }
+      const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p1.setAttribute('d', buildCscBranch(12, 168));
+      const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p2.setAttribute('d', buildCscBranch(192, 348));
+      staticContainer.appendChild(p1);
+      staticContainer.appendChild(p2);
+
+      // DOM 元素引用
+      const arm = document.getElementById('csc-arm');
+      const cart = document.getElementById('csc-cart');
+      const sinBar = document.getElementById('csc-sin-bar');
+      const hypotenuse = document.getElementById('csc-hypotenuse');
+      const vertPillar = document.getElementById('csc-vert-pillar');
+      const cscSpot = document.getElementById('csc-spot');
+      const labelCsc = document.getElementById('label-csc');
+      const labelCscDesc = document.getElementById('label-csc-desc');
+      const laser = document.getElementById('laser-beam-csc');
+      const waveDot = document.getElementById('wave-dot-csc');
+      const dynamicWave = document.getElementById('dynamic-csc-curve');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 旋转角度 (0 到 360度)
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+        const currentDeg = progress * 360;
+        const theta = (currentDeg * Math.PI) / 180;
+
+        // 摩天轮小车位置
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta);
+
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 计算正弦与余割
+        const sinVal = Math.sin(theta);
+        const cosVal = Math.cos(theta);
+        const cscVal = Math.abs(sinVal) > 0.0001 ? 1.0 / sinVal : 999999;
+        const cotVal = Math.abs(sinVal) > 0.0001 ? cosVal / sinVal : 999999;
+
+        // 天桥光斑 X 坐标
+        const rawSpotX = cx + r * cotVal;
+        const clampedSpotX = Math.max(35, Math.min(285, rawSpotX));
+
+        // 1. 竖直正弦高度柱
+        sinBar.setAttribute('x1', cartX);
+        sinBar.setAttribute('y1', cy);
+        sinBar.setAttribute('x2', cartX);
+        sinBar.setAttribute('y2', cartY);
+
+        // 2. 斜边光束：从圆心射向天桥光斑
+        hypotenuse.setAttribute('x1', cx);
+        hypotenuse.setAttribute('y1', cy);
+        hypotenuse.setAttribute('x2', clampedSpotX);
+        hypotenuse.setAttribute('y2', ceilingY);
+
+        cscSpot.setAttribute('cx', clampedSpotX);
+
+        // 3. 竖直立起来的余割测量柱（高度对应 cscVal）
+        const rawTargetY = cy - r * cscVal;
+        const clampedTargetY = Math.max(105, Math.min(435, rawTargetY));
+
+        vertPillar.setAttribute('x1', cx);
+        vertPillar.setAttribute('y1', cy);
+        vertPillar.setAttribute('x2', cx);
+        vertPillar.setAttribute('y2', clampedTargetY);
+
+        // 4. 文字状态提示
+        const isNearZeroOr180 = Math.abs(currentDeg - 0) < 6 || Math.abs(currentDeg - 180) < 6 || Math.abs(currentDeg - 360) < 6;
+        if (isNearZeroOr180) {
+          labelCsc.textContent = '余割 csc: 接近渐近线';
+          labelCscDesc.textContent = '0°、180°处未定义；附近绝对值急增';
+        } else if (Math.abs(currentDeg - 90) < 4) {
+          labelCsc.textContent = '余割 csc: +1.00 (90°)';
+          labelCscDesc.textContent = '函数值 +1；绝对值为 1';
+        } else if (Math.abs(currentDeg - 270) < 4) {
+          labelCsc.textContent = '余割 csc: -1.00 (270°)';
+          labelCscDesc.textContent = '函数值 -1；负号表示方向';
+        } else if (Math.abs(Math.abs(cscVal) - 2.0) < 0.15) {
+          labelCsc.textContent = '余割 csc: ' + (cscVal > 0 ? '+2.00 (30°/150°)' : '-2.00');
+          labelCscDesc.textContent = '正弦绝对值为 1/2，余割绝对值为 2';
+        } else {
+          labelCsc.textContent = '余割 csc: ' + (cscVal >= 0 ? '+' : '') + cscVal.toFixed(2);
+          labelCscDesc.textContent = cscVal > 0 ? '↘️ 从天穹降向碗底' : '↗️ 倒扣碗底部回升';
+        }
+
+        // 5. 右侧波浪进度
+        const waveX = waveStartX + currentDeg;
+        const waveY = clampedTargetY;
+
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        laser.setAttribute('x1', cx);
+        laser.setAttribute('y1', clampedTargetY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的余割曲线
+        let d = '';
+        if (currentDeg <= 180) {
+          d = buildCscBranch(12, Math.min(Math.floor(currentDeg), 168));
+        } else {
+          d = buildCscBranch(12, 168) + ' ' + buildCscBranch(192, Math.min(Math.floor(currentDeg), 348));
+        }
+        dynamicWave.setAttribute('d', d);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>正切 tan | 三角函数互动演示</title>
+  <meta name="description" content="通过圆周上的射线与切线，观察正切函数及其渐近线。">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .stage { width: min(100%, 1440px); margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    footer { padding: 12px 20px 20px; color: #475569; font-size: 13px; text-align: center; }
+    footer a { color: #0369a1; }
+  </style>
+</head>
+<body>
+<main class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="100%" height="100%" style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;">
+  <defs>
+    <!-- 阴影滤镜 -->
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <!-- 渐变色：正切使用活力翡翠绿到蓝青色 -->
+    <linearGradient id="wave-grad-tan" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="bar-tan" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 顶部标题 -->
+  <g transform="translate(30, 42)">
+    <text x="0" y="0" font-size="22" font-weight="bold" fill="#0f172a">🎡 摩天轮与切线墙 —— 三角函数（正切 tan）的秘密</text>
+    <text x="0" y="24" font-size="13" fill="#64748b">观察射线与切线的交点变化；90°、270°处正切未定义，接近这些角度时函数值绝对值急剧增大。</text>
+  </g>
+
+  <!-- 左侧卡片：摩天轮与垂直切线墙 -->
+  <rect x="25" y="85" width="330" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="45" y="118" font-size="15" font-weight="bold" fill="#059669">1. 探照灯照向切线高墙（正切 tan）</text>
+  <text x="45" y="136" font-size="11.5" fill="#64748b">光束穿过小车打在竖直墙壁上，光斑高低就是正切值</text>
+
+  <!-- 右侧卡片：正切曲线生成过程 -->
+  <rect x="375" y="85" width="500" height="360" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#soft-shadow)"/>
+  <text x="395" y="118" font-size="15" font-weight="bold" fill="#047857">2. 展开时间轴（正切曲线 y = tan θ）</text>
+  <text x="395" y="136" font-size="11.5" fill="#64748b">不再是平缓波浪，而是一座座冲天飞跃的“过山车轨道”！</text>
+
+  <!-- 左侧图形区域：圆心 (160, 270), 半径 R = 65, 切线墙位于 X = 225 -->
+  <g id="ferris-wheel-tan">
+    <!-- 地基与支架 -->
+    <line x1="160" y1="270" x2="120" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="160" y1="270" x2="200" y2="405" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <line x1="105" y1="405" x2="215" y2="405" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- 摩天轮外环 -->
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+    <circle cx="160" cy="270" r="65" fill="none" stroke="#a7f3d0" stroke-width="2"/>
+
+    <!-- 水平地平线基准 (Y = 270) -->
+    <line x1="50" y1="270" x2="235" y2="270" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="45" y="265" font-size="10" fill="#94a3b8">水平基准(0)</text>
+
+    <!-- 右侧垂直切线测量墙 (X = 225) -->
+    <line x1="225" y1="105" x2="225" y2="435" stroke="#94a3b8" stroke-width="2"/>
+    <text x="230" y="115" font-size="10" fill="#059669" font-weight="bold">切线墙 (x=1)</text>
+    <!-- 切线墙刻度线 -->
+    <line x1="220" y1="205" x2="230" y2="205" stroke="#059669" stroke-width="1.5"/>
+    <text x="233" y="209" font-size="9" fill="#059669">+1(45°)</text>
+    <line x1="220" y1="335" x2="230" y2="335" stroke="#059669" stroke-width="1.5"/>
+    <text x="233" y="339" font-size="9" fill="#059669">-1</text>
+
+    <!-- 竖直切线上的正切高柱（翡翠绿） -->
+    <line id="tan-wall-bar" x1="225" y1="270" x2="225" y2="270" stroke="url(#bar-tan)" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- 探照灯光束（从圆心穿过小车直达切线墙） -->
+    <line id="searchlight-beam" x1="160" y1="270" x2="225" y2="270" stroke="#f59e0b" stroke-width="2"/>
+
+    <!-- 摩天轮旋转吊臂 -->
+    <line id="tan-arm" x1="160" y1="270" x2="225" y2="270" stroke="#334155" stroke-width="2.5"/>
+    <circle cx="160" cy="270" r="4.5" fill="#0f172a"/>
+
+    <!-- 摩天轮座舱小车 -->
+    <g id="tan-cart" transform="translate(225, 270)">
+      <circle cx="0" cy="0" r="11" fill="#10b981" filter="url(#soft-shadow)"/>
+      <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+      <circle cx="0" cy="0" r="2" fill="#059669"/>
+    </g>
+
+    <!-- 切线墙上的光斑 -->
+    <circle id="tan-spot" cx="225" cy="270" r="6" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- 左侧状态看板 -->
+    <rect x="45" y="380" width="145" height="48" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text id="label-tan" x="55" y="400" font-size="12" font-weight="bold" fill="#059669">正切 tan: 0.00</text>
+    <text id="label-tan-desc" x="55" y="418" font-size="10.5" fill="#047857">光斑平齐中心地平线</text>
+  </g>
+
+  <!-- 右侧坐标系与正切曲线 (起始 X=410, 周期宽=360, 中心 Y=270, 比例 R=65) -->
+  <g id="wave-system-tan">
+    <!-- 坐标轴 -->
+    <line x1="390" y1="270" x2="855" y2="270" stroke="#cbd5e1" stroke-width="1.5"/>
+    <line x1="410" y1="105" x2="410" y2="435" stroke="#cbd5e1" stroke-width="1.5"/>
+    <polygon points="860,270 850,266 850,274" fill="#94a3b8"/>
+    <polygon points="410,100 406,110 414,110" fill="#94a3b8"/>
+    <text x="815" y="290" font-size="11" fill="#64748b">旋转角度 / 周期</text>
+    <text x="415" y="112" font-size="11" fill="#64748b">数值</text>
+
+    <!-- 关键基准线：+1 与 -1 -->
+    <line x1="405" y1="205" x2="850" y2="205" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="382" y="209" font-size="10" fill="#94a3b8">+1</text>
+    <line x1="405" y1="335" x2="850" y2="335" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="382" y="339" font-size="10" fill="#94a3b8">-1</text>
+
+    <!-- 渐近线（结界虚线）：90° 与 270°，永远碰不到的界限！ -->
+    <line x1="500" y1="105" x2="500" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="468" y="115" width="64" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="472" y="128" font-size="9" fill="#ea580c" font-weight="bold">90° 结界线</text>
+
+    <line x1="680" y1="105" x2="680" y2="435" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="648" y="115" width="64" height="18" rx="4" fill="#fff7ed" stroke="#ffedd5"/>
+    <text x="652" y="128" font-size="9" fill="#ea580c" font-weight="bold">270° 结界线</text>
+
+    <!-- 角度刻度 -->
+    <text x="405" y="286" font-size="9.5" fill="#94a3b8">0°</text>
+    <text x="450" y="286" font-size="9.5" fill="#059669">45°(tan=1)</text>
+    <text x="580" y="286" font-size="9.5" fill="#94a3b8">180°(0)</text>
+    <text x="760" y="286" font-size="9.5" fill="#94a3b8">360°(0)</text>
+
+    <!-- 静态参考正切曲线（浅灰底纹） -->
+    <g id="static-tan-curves" stroke="#e2e8f0" stroke-width="2.5" fill="none" stroke-dasharray="4,4"></g>
+
+    <!-- 动态绘制的正切轨迹 -->
+    <path id="dynamic-tan-curve" d="" fill="none" stroke="url(#wave-grad-tan)" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 正切曲线上的追踪点 -->
+    <circle id="wave-dot-tan" cx="410" cy="270" r="7" fill="#059669" stroke="#ffffff" stroke-width="2" filter="url(#soft-shadow)"/>
+  </g>
+
+  <!-- 水平金色对齐光束（连接左侧切线光斑与右侧追踪点） -->
+  <line id="laser-beam-tan" x1="225" y1="270" x2="410" y2="270" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- 底部生动口诀与趣味说明 -->
+  <g transform="translate(30, 462)">
+    <rect x="-5" y="-12" width="850" height="34" rx="8" fill="#ecfdf5" stroke="#d1fae5"/>
+    <text x="15" y="10" font-size="12.5" fill="#065f46">
+      💡 <tspan font-weight="bold" fill="#059669">一句话秒懂：</tspan>
+      <tspan fill="#e11d48" font-weight="bold">sin</tspan> 与 <tspan fill="#0284c7" font-weight="bold">cos</tspan> 描述圆周运动的投影；<tspan fill="#059669" font-weight="bold">tan</tspan> 在 90°、270° 处未定义，接近渐近线时函数值绝对值急剧增大。
+    </text>
+  </g>
+
+  <!-- 核心动力脚本 -->
+  <script type="text/javascript">
+    <![CDATA[
+    (function() {
+      const cx = 160, cy = 270, r = 65;
+      const wallX = 225; // cx + r
+      const waveStartX = 410;
+      const totalWidth = 360; // 360° = 360px (1度 = 1px)
+      const cycleDuration = 8000; // 8秒转一整圈
+
+      // 绘制右侧背景参考正切曲线 (分为 0~90, 90~270, 270~360 三段)
+      const staticContainer = document.getElementById('static-tan-curves');
+      function buildBranch(startDeg, endDeg) {
+        let d = '';
+        for (let deg = startDeg; deg <= endDeg; deg += 1) {
+          const theta = (deg * Math.PI) / 180;
+          const tanVal = Math.tan(theta);
+          const rawY = cy - r * tanVal;
+          const clampedY = Math.max(105, Math.min(435, rawY));
+          const x = waveStartX + deg;
+          d += (d === '' ? 'M ' : ' L ') + x + ' ' + clampedY;
+        }
+        return d;
+      }
+      const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p1.setAttribute('d', buildBranch(0, 78));
+      const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p2.setAttribute('d', buildBranch(102, 258));
+      const p3 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p3.setAttribute('d', buildBranch(282, 360));
+      staticContainer.appendChild(p1);
+      staticContainer.appendChild(p2);
+      staticContainer.appendChild(p3);
+
+      // DOM 元素引用
+      const arm = document.getElementById('tan-arm');
+      const cart = document.getElementById('tan-cart');
+      const searchlight = document.getElementById('searchlight-beam');
+      const wallBar = document.getElementById('tan-wall-bar');
+      const tanSpot = document.getElementById('tan-spot');
+      const labelTan = document.getElementById('label-tan');
+      const labelTanDesc = document.getElementById('label-tan-desc');
+      const laser = document.getElementById('laser-beam-tan');
+      const waveDot = document.getElementById('wave-dot-tan');
+      const dynamicWave = document.getElementById('dynamic-tan-curve');
+
+      let startTime = null;
+
+      function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        // 旋转角度 (0 到 360度)
+        const progress = (elapsed % cycleDuration) / cycleDuration;
+        const currentDeg = progress * 360;
+        const theta = (currentDeg * Math.PI) / 180;
+
+        // 小车在圆周上的位置
+        const cartX = cx + r * Math.cos(theta);
+        const cartY = cy - r * Math.sin(theta);
+
+        arm.setAttribute('x2', cartX);
+        arm.setAttribute('y2', cartY);
+        cart.setAttribute('transform', 'translate(' + cartX + ',' + cartY + ')');
+
+        // 计算正切值与切线墙上的投影高度
+        const tanVal = Math.tan(theta);
+        const rawSpotY = cy - r * tanVal;
+        const clampedSpotY = Math.max(105, Math.min(435, rawSpotY));
+
+        // 更新探照灯光束：从中心向外射向切线墙
+        searchlight.setAttribute('x1', cx);
+        searchlight.setAttribute('y1', cy);
+        searchlight.setAttribute('x2', wallX);
+        searchlight.setAttribute('y2', clampedSpotY);
+
+        // 更新切线墙上的绿色正切柱
+        wallBar.setAttribute('x1', wallX);
+        wallBar.setAttribute('y1', cy);
+        wallBar.setAttribute('x2', wallX);
+        wallBar.setAttribute('y2', clampedSpotY);
+
+        // 切线光斑
+        tanSpot.setAttribute('cy', clampedSpotY);
+
+        // 文字状态更新
+        const isNear90 = Math.abs(currentDeg - 90) < 6;
+        const isNear270 = Math.abs(currentDeg - 270) < 6;
+        if (isNear90) {
+          labelTan.textContent = '正切 tan: 接近渐近线';
+          labelTanDesc.textContent = '90°处未定义；附近函数值急剧变化';
+        } else if (isNear270) {
+          labelTan.textContent = '正切 tan: 接近渐近线';
+          labelTanDesc.textContent = '270°处未定义；附近函数值急剧变化';
+        } else if (Math.abs(tanVal - 1.0) < 0.1) {
+          labelTan.textContent = '正切 tan: 1.00 (45°)';
+          labelTanDesc.textContent = '⭐ 坡度=1，光斑高正好等于半径';
+        } else if (Math.abs(tanVal) < 0.08) {
+          labelTan.textContent = '正切 tan: 0.00';
+          labelTanDesc.textContent = '⚖️ 平齐中心地平线';
+        } else {
+          labelTan.textContent = '正切 tan: ' + (tanVal >= 0 ? '+' : '') + tanVal.toFixed(2);
+          labelTanDesc.textContent = tanVal > 0 ? '📈 坡度急剧上升' : '📉 坡度正在回升';
+        }
+
+        // 右侧波浪进度
+        const waveX = waveStartX + currentDeg;
+        const waveY = clampedSpotY;
+
+        waveDot.setAttribute('cx', waveX);
+        waveDot.setAttribute('cy', waveY);
+
+        laser.setAttribute('x1', wallX);
+        laser.setAttribute('y1', clampedSpotY);
+        laser.setAttribute('x2', waveX);
+        laser.setAttribute('y2', waveY);
+
+        // 动态绘制已生成的正切曲线
+        let d = '';
+        if (currentDeg <= 90) {
+          d = buildBranch(0, Math.min(Math.floor(currentDeg), 78));
+        } else if (currentDeg <= 270) {
+          d = buildBranch(0, 78) + ' ' + buildBranch(102, Math.min(Math.floor(currentDeg), 258));
+        } else {
+          d = buildBranch(0, 78) + ' ' + buildBranch(102, 258) + ' ' + buildBranch(282, Math.min(Math.floor(currentDeg), 360));
+        }
+        dynamicWave.setAttribute('d', d);
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    })();
+    ]]>
+  </script>
+</svg>
+</main>
+<footer><a href="../../../gallery/#math">返回三角函数系列</a> · 教师演示：乔瑞制作，Gemini Spark 辅助创作</footer>
+</body>
+</html>
